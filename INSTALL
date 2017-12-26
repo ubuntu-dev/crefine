@@ -1,0 +1,6 @@
+To install crefine just put the executable file "crefine" into
+a directory where executables reside, such as "/usr/local/bin" or
+"/tools/bin" under Unix and put the Manualpage into a directory where
+Manpages reside such as "/usr/local/man/man1" or "/tools/man/man1".
+
+That's all.

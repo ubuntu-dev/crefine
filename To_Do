@@ -1,0 +1,16 @@
+ Things to do in C-Refine     as of 22.08.91
+==========================
+
+1. Lutz Prechelt, 11.06.91
+   Handle #line directives in form (<ws> is whitespace, i.e. Blank or Tab)
+   #[<ws>...][line<ws>...]<linenumber>[<ws>..."<filename>"]
+   so e.g.
+   #line 11 "abc.x"
+   # 15 "abc.c"
+
+2. Lutz Prechelt, 11.06.91
+   Handle stdin and stdout as files via "-" syntax
+
+3. Lutz Prechelt, 11.06.91
+   Handle multiple input files:
+   Enforce stripping of "r" at end of input file name

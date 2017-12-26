@@ -1,0 +1,81 @@
+/*
+    Copyright (C) 1987-1991 by Lutz Prechelt, Karlsruhe
+
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 1, or (at your option)
+    any later version.
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+    You should have received a copy of the GNU General Public License
+    along with this program; if not, write to the Free Software
+    Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+*/
+
+>>>>> This is README for C-Refine Version 2.4 <<<<<
+
+C-Refine is a preprocessor for programs written in C or C++ or a similar 
+language. It introduces an additional language construct called 'refinement'
+which allows further decomposition with symbolic names inside functions.
+This makes programs much easier to read and modify and is very comfortable
+for programming.
+
+The system consists of a single executable file (crefine) and one
+Unix Manualpage (crefine.1). No further data files or libraries 
+except the standard C library are needed.
+
+------------------------------------------------------------------------------
+
+To generate C-Refine (which is bootstrapped, i.e. written in C-Refine)
+you must first compile the preprocessed version of the files.
+
+This is done with the command
+  make crefine_from_c
+which always compiles and links all 4 parts.
+
+If you have a working version of C-Refine you can bootstrap it via
+  make crefine
+
+The makefile also mentions a rule for translating in one step from
+C-Refine to .o
+
+------------------------------------------------------------------------------
+
+If you have gotten C-Refine to work on a machine not mentioned below,
+please send me (prechelt@ira.uka.de) a short note of the form:
+
+   Subject: got C-Refine working
+   I got C-Refine 2.4 to work without problems on the following machine
+   <name-of-computer> <name-and-version-of-operating-system>
+   
+(...or describe why C-Refine didn't compile and perhaps send me a minimal
+diff to get it to work.)
+
+------------------------------------------------------------------------------
+
+Environments where C-Refine already works:
+
+(CF is the certainty factor with the following meaning:
+ 1: compiles  (I have checked that)
+ 2: most probably compiles (but I don't have machine at hand to check again)
+ 3: probably compiles (it once did, but changes may have reversed this)
+ 4: should compile (have done my best from what I know about that system)
+ 5: may compile (a bit doubtful)
+)
+ 
+CF  Machine            Operating System (and perhaps Compiler)
+
+1   DECstation 3100    Ultrix 4.1
+3   IBM PC etc.        MS-DOS 3.2 (Microsoft C 5.0)
+3   PCS (type???)      (some System V)
+2   Sun3               SUN-OS 3.5
+1   Sun3,Sun4          SUN-OS 4.03
+1   Sun3,Sun4          SUN-OS 4.1
+1   VAXstation 3250    Ultrix-32 V3.1
+
+------------------------------------------------------------------------------
+
+The Makefile will not work with some prehistoric versions of "make".
+In this case I strongly suggest that you get a newer make, e.g. GNU-Make.

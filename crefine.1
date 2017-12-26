@@ -1,0 +1,504 @@
+.TH CREFINE 1 "22 August 1991"
+.SH NAME
+crefine \- refinement preprocessor for C and C++
+.SH SYNOPSIS
+.B crefine
+[
+.B options
+]
+.I inputfile
+[
+.I outputfile
+]
+.SH DESCRIPTION
+.B crefine (C-Refine)
+(spoken like 'see refine') is a preprocessor that adds a new language
+construct to C and C++: the 
+.I refinement.
+crefine massages a source code file to produce plain C output from
+C input with refinements or plain C++ from C++ with refinements.
+The syntax of refinements is described in the USAGE section.
+Only a single source file may be processed with one call; the name of the
+output file, if not given, is derived from the name of the input file
+by removing its last 
+character, if that is an 
+.B r
+(which is the filename convention for C\-Refine).
+If the last character of
+the input filename is not an 
+.B r
+, the output filename is derived from it
+by appending
+.B RRR
+instead.
+Input and output is always to and from named
+files. Error messages go to the standard output. The startup message,
+if not suppressed, goes to standard error.
+
+C\-Refine does not act in any way upon the directives for the
+C preprocessor. This especially means that include files have to be 
+processed separately. Usually, this will not be necessary, since they do
+not typically contain anything that C\-Refine should work on.
+A second consequence is, that it is possible for C\-Refine to give error
+messages on correct programs, because it does not see the effects of 
+running the preprocessor. In these cases you either have to change your 
+source code or run the C preprocessor before C\-Refine.
+.SH OPTIONS
+.TP
+.B \-a
+anyway. Normally, if any error was detected by C\-Refine, the output file 
+will automatically be deleted. This option says not to do so.
+.TP
+.B \-c
+comment refinement names in the output. Any inserted 
+refiement body in the output is titled by a comment giving the refinement
+name and the refinement nesting level.
+.TP
+.B \-f
+feedback that you work. For the homo ludens in the programmer or people
+with incredibly overloaded machines. Shows running line numbers on standard
+error.
+.TP
+.B \-i
+indent the 
+.I #line
+directives in the resulting output to the appropriate
+indentation level as indicated by the nesting of refinements. Not an 
+especially important option, but since this is a true UNIX program, it is
+present anyway.
+.TP
+.B \-l
+list all refinement names.
+The names of all processed refinements are listed
+to the standard output along with their line numbers. 
+I do not know exactly what this option may be good
+for, but I believe someday somebody will need it.
+.TP
+.B \-m<ch>
+message language. Originally, C\-Refine was written by a typical german
+programmer in the typical german programmer schizophrenia situation: 
+as a german the native tongue is german,
+as a programmer the native tongue is
+english. So both languages were supported for the error messages.
+Even worse, since I believe the whole data processing world is much too
+serious, I liked to have a humourous version either. So now any of the 
+characters 
+.B d,D,g,G
+immediately after the option character m gives you
+german error and warning messages, 
+.B e
+or
+.B E
+gives english ones (which, 
+for sake of internationality, is the default) and every other letter lets
+you stick to (german) humor.
+.TP
+.B \-n<num>
+numbering with
+.I #line
+commands. By default, every insertion of a
+refinement body is accompanied by a #line preprocessor directive in the 
+output. This is the default numbering level 3.
+By giving a smaller number just after the option character
+.B n
+, the amount of
+.I #line
+directives used can be 
+reduced (level 2 or 1) or set to zero (level 0). What is best depends on 
+the behavior of your local C or C++ compiler.
+Just try it out, beginning with the default level 3.
+.TP
+.B \-p
+plus. The C++ mode. The only difference between C mode and C++ mode for
+C\-Refine is, that in C++ mode the C++ doubleslash comment convention is
+obeyed, while in C mode it is not. This is possible because C\-Refine knows
+very little about the actual syntax of these two languages.
+So in most cases, this difference makes no difference at all.
+.TP
+.B \-q
+quiet mode. Suppresses the startup message of C\-Refine.
+.TP
+.B \-r<ch>
+refinement symbol. Select what character shall be recognized as the 
+refinement symbol in the input file. The character to chose must be given
+on the command line immediately after the option character
+.B r.
+This is the
+backquote (ASCII code 95) by default. Since there are only two printable
+ASCII characters that are unused in the syntax of C (the backquote, 
+code 96, and the dollar or currency sign, code 36) there is very little 
+choice on a machine with 7 bit character set. This choice is further 
+restricted because on some systems (such as VMS) the dollar sign is
+acutally being allowed and used for identifiers.
+Some more possiblilities arise when having an 8 bit character set, such
+as the IBM international character set (proposed symbol there is the
+little double right angle bracket, code 175, which really looks nice),
+but take into account that any change in refinement symbol is bad
+for the portability of your source files.
+.TP
+.B \-R<num>
+refinement symbol. Same as before, but the new symbol is given by its
+character code instead of by itself.
+.TP
+.B \-s
+strip. Produces smaller output by stripping of all indentation, whether
+present in the input or generated by C\-Refine, and all comments.
+This is on by default. To switch it off, use the syntax 
+.B \-s\-
+.TP
+.B \-w<num>
+warning level. C\-Refine is able to give various warnings about your
+source code. These can be suppressed in three stages. The default warning
+level is 3 (all warnings). You can chose any level from 0 (no warnings)
+to 3 by giving the appropriate number right after the option character
+.B w
+on the command line.
+.TP
+.B \-B<num>
+buffer. Select the size of the source code buffer
+in which C\-Refine holds the
+code for a function while processing it. The default is 150000 bytes.
+.TP
+.B \-E<num>
+errors. Select the maximum number of errors that may occur in the input
+before C\-Refine stops processing prematurely. The default is 20.
+.TP
+.B \-L<num>
+lines. Select the maximum number of source code lines per single function
+that C\-Refine is able to hold. The default is 2500. 
+.TP
+.B \-N<num>
+number of refinements per function.
+Selects the maximum number of refinement
+declarations that may be present within any single function. 
+The default is 200.
+.TP
+.B \-T<num>
+tab size. Select the number of spaces to which a TAB character expands.
+C\-Refine expands all TAB characters at the beginning of a line, i.e. those
+that act as indentation. Other TABs are left untouched. The default is 1.
+.TP
+.B \-W<num>
+warnings. Select the maximum number of warnings that may occur
+before C\-Refine stops processing prematurely. The default is 30.
+.SH USAGE
+There are three new syntactic elements with C\-Refine:
+the refinement definition, the refinement call and the leave construct.
+The purpose of refinements is to support
+the Top\-Down style of programming
+(a) within a function and (b) in both, thinking and writing.
+Essentially, refinements are just parameterless macros with
+long descriptive names.
+Refinements are in any case local to a function. They may be called 
+before they are declared; declaration and definition of a 
+refinement are one.
+The syntax of refinements as defined by C\-Refine is
+.I not
+format free, but lays significance upon whether a special symbol (the
+refinement symbol) is occuring in column 0 or somewhere else.
+
+Along with the new language constructs are some layout restrictions
+for the program text being defined. This is necessary, because (a) the
+syntax of the refinement constructs breaks basic syntactic rules of C and
+(b) the C\-Refine preprocessor relies on some simple formatting rules, so
+its algorithms can be kept simple and the whole thing small, portable,
+robust, reliable and fast.
+
+Here are the (very informal) descriptions of the syntax and semantics of
+the language elements introduced by C\-Refine:
+.TP
+refinement names
+A 
+.I refinement name
+is just a normal C identifier, with one important addition:
+blanks are allowed within (!)
+it (i.e. anywhere after the first nonblank character
+of the name and before the last nonblank one); they are equivalent to
+underscores. The end of a refinement name is always detected by the
+appearence of a special symbol, typically a semicolon, a colon or an
+operator.
+A refinement name must, however, be on a single line.
+.TP
+.B refinement calls
+A
+.I refinement call
+consists of the refinement symbol, immediately followed
+by a refinement name. The refinement symbol must not be in colums 0 of the
+source line. Refinement calls are principally allowed anywhere within 
+a function. The called refinement must be defined in that function, although
+the definition may (and usually will) appear later than the call.
+The semantics of a refinement call is as follows:
+A 
+.I procedural refinement
+(i.e. one that contains at least one semicolon in
+its body) is inserted instead of its call, surrounded by a pair of curly 
+braces. This insertion is recursively applied to nested refinements.
+A 
+.I valued refinement
+(i.e. one that contains just an expression and no 
+semicolon in its body) is inserted instead of its call, surrounded by 
+a pair of parentheses.
+This insertion is recursively applied to nested valued refinements.
+So procedural refinements can be called anywhere where a block statement is
+legal. Valued refinements can be called anywhere where a parenthesed 
+expression is legal.
+An illegal form of refinement call will be detected by C\-Refine.
+.TP
+.B refinement definitions
+a refinement definition consists of the refinement symbol, immediately 
+followed by a refinement name, followed by a colon. 
+The refinement symbol must be in column 0 of the
+source line. Refinement definitions are allowed only on block nesting
+level 1, i.e. in the outermost block of a function.
+The body of a refinement is examined to decide what type of
+refinement it is:
+All refinements that contain one or more semicolons in their body,
+that are not part of a comment, character denoter or string denoter, 
+are called
+.I procedural refinements,
+since they contain statements.
+All other refinements are called
+.I valued refinements,
+since they only contain an expression and thus return a value.
+Illegal syntax of a refinement declaration and the declaration of 
+refinements that are never used will be detected by C\-Refine.
+.TP
+.B leave
+The 
+.I leave construct
+may be used from within any procedural refinement at any place where a 
+statement is legal. It consists of the keyword
+.B leave
+followed by the refinement symbol, followed by a refinement name
+.I ref.
+The semantics of this construct is, that a 
+.I goto
+statement is inserted instead of the leave construct, that jumps to
+a point right after the last statement of the refinement 
+.I ref.
+For this to be legal
+.I ref
+must be present in the current static nesting of refinement calls.
+This means that not only the current refinement can be left with 
+.I leave,
+but any number of refinements that are statically nested at that point
+of your code. Illegal use of the leave construct is detected by C\-Refine.
+
+As by now, I assume, almost any understanding that may initially have been
+there, will probably have vanished. I will try to get it back to you by 
+means of the following example. This is a (very simple\-minded) version
+of the Sieve of Eratosthenes. It should not be thought that I believe the
+refinement technique to be especially well suited to this problem, but this
+was the smallest 'real' problem I could think of to demonstrate at least
+most of what the possibilities of C\-Refine are. So here it is:
+
+.nf
+#define MAX        10000
+#define PRIME      0
+#define NON_PRIME  1
+
+static int sieve[MAX+1];
+
+int main ()
+{
+  `initialize;
+  `do sieve;
+  `make output;
+  return (0);
+  
+`initialize:
+  int current;
+  for (current = 2; current <= MAX; current++)
+    sieve[current] = PRIME;
+    
+`do sieve:
+  int current_prime = 1;
+  for (;;) {
+    `find next bigger prime;  /* perhaps STOP here */
+    `delete all multiples of current_prime;
+  }
+
+`find next bigger prime:
+  int current_candidate = current_prime + 1;
+  while (sieve[current_candidate] == NON_PRIME)
+    if (current_candidate == MAX)
+      leave `do sieve;    /* leave two refinements at once */
+    else
+      current_candidate++;
+  /* now current_candidate is a prime (or we leave `sieve) */
+  current_prime = current_candidate;
+  
+`delete all multiples of current_prime:
+  int current = `first multiple of current_prime;
+  while (current <= MAX) {
+    sieve[current] = NON_PRIME;
+    current += current_prime;
+  }
+  
+`first multiple of current_prime:
+  2 * current_prime
+
+`make output:
+  int current;  /* different from 'current' above */
+  printf ("The primes between 2 and %d are\n", MAX);
+  for (current = 2; current <= MAX; current++)
+    if (`current is prime)
+      printf ("%5d ", current);
+
+`current is prime:
+  sieve[current] == PRIME
+
+} /* end of main() */
+
+/***** End of example *****/
+.fi
+To make the self documentation aspect of C\-Refine more clear, look at
+the following example: A function that tests, whether its parameters
+form a pythagorean triple:
+.nf
+bool pythagorean (double x, double y, double z)
+{
+  return (`all legs positive && `one is hypotenuse)
+  
+`all legs positive:
+   x > 0  &&  y > 0  &&  z > 0
+
+`one is hypotenuse:
+  `x is hypotenuse || `y is hypotenuse || `z is hypotenuse
+  
+`x is hypotenuse:
+  x*x == y*y + z*z 
+
+`y is hypotenuse:
+  y*y == x*x + z*z
+
+`z is hypotenuse:
+  z*z == x*x + y*y
+  
+}
+.fi
+This is good style: you write down just what you want to express and
+with an optimizing compiler such code will also be perfectly efficient.
+Try to imagine what this would have looked like, if it had all been 
+in a single parenthesesed expression.
+.SH FILES
+.PD 0
+.TP 18
+bin/crefine
+the executable program
+.TP
+filename.cr
+C\-with\-refinements input file.
+.TP
+filename.c
+C output file.
+.TP
+filename.ccr
+C++\-with\-refinements input file.
+.TP
+filename.cc
+C++ output file.
+.TP
+otherfileRRR
+output file from input file
+.I otherfile
+.PD
+.SH EXAMPLES
+.TP
+crefine firsttest.cr
+process the input file firsttest.cr producing the output file firsttest.c
+.TP
+crefine -p+ -q+ -w2 next.ccr outfile
+process the C++ inputfile next.ccr producing the output file outfile.
+The startup message is suppressed, C++ mode is selected and the 
+warning level is reduced to 2.
+.TP
+crefine -pqw2 next.ccr outfile
+same as before.
+.TP
+crefine -p+a-l-qw2 next.ccr outfile
+same as before.
+.TP
+crefine -c -s- -n0 -T8 last.cr
+process the inputfile last.cr in order to get a readable C source.
+Comments and indentation are not stripped, inserted refinement bodies 
+are tagged by an additional comment giving the refinement name,
+all 
+.I #line
+preprocessor directives are left out and leading tabs expand
+to 8 spaces.
+.TP
+crefine -cs-n0T8 last.cr
+same as before.
+.SH DIAGNOSTICS
+The warnings and error messages are intended to be self explanatory. If you
+do not understand one of them anyway: chose a different language for
+the messages (see option \-m), get yourself a dictionary or interpreter and
+try again.
+.SH SEE ALSO
+cc(1), cpp(1), make(1)
+.SH BUGS
+Since preprocessor directives are not handled by C\-Refine, strange things 
+can happen if you use #ifdef or #if. This is especially the case, if you
+use these directives to put large comments into your source files: if there
+are any comments or string literals (double quotes) or char 
+literals (single quotes) beginning in that area that are not properly 
+closed within it, C\-Refine will run to nirvana searching for their end and 
+give you lots of wrong error and warning messages.
+Watch out for apostrophes (e.g. in "don't") especially!
+.LP
+C\-Refine should be able to act according to #line commands, so that 
+the above problems could be avoided by running the preprocessor first.
+.LP
+Those people, who use such stupid macros as
+.nf
+   #define BEGIN {
+   #define END   }
+.fi
+or similar craizy stuff, will have to change their habits in order
+to use C\-Refine.
+.LP
+The output of C\-Refine may be code that exceeds certain compiler limits of
+your C or C++ compiler. Since the body of every procedural refinement is
+enclosed in a block and the body of every value returning refinement is
+enclosed in parentheses, the block nexting limits or expression complexity 
+limits of your compiler may be reached when you make very heavy use of
+nested refinements.
+.LP
+Some compilers may handle the #line directive improperly, yielding wrongly
+tagged error messages.
+.LP
+Probably C\-Refine will also work with Objective\-C,
+but I am not absolutely sure about that.
+.LP
+There should be a mode to use C\-Refine for Lisp also.
+.LP
+C\-Refine reacts poor on some types of syntactic errors.
+.LP
+It should optionally be possible to let C\-Refine run the 
+C preprocessor and react correctly to 
+.I #line
+directives.
+.LP
+In C++, when a "leave" has to jump across a variable initialization, some 
+Compilers will complain, that the goto is illegal. This is not true, 
+because the goto jumps to (or even beyond) the very end of the block 
+where that variable is in
+[precisely: the jump is to an empty statement, which is the last statement
+in the block], but these compilers do not recognize that fact.
+.SH VERSION
+This is for C\-Refine Version 2.4
+.LP
+It is likely that the command syntax be changed in the next version in the
+following way: multiple filenames can be given, all of which 
+.I must
+end with an 'r'. The output filename is constructed implicitly by 
+removing that 'r' from the inputfilename. So you better do not use output
+file names in your makefiles.
+.SH AUTHOR
+Lutz Prechelt, 
+Institut fuer Programmstrukturen und Datenorganisation,
+Universitaet Karlsruhe,
+D-7500 Karlsruhe,
+Germany.
+(prechelt@ira.uka.de)
