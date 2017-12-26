@@ -3,8 +3,8 @@
 Project : C-Refine Precompiler
 Module  : Line Scanner
 Author  : Lutz Prechelt, Karlsruhe
-Date    : 11.06.91  Version 16
-Compiler: ANSI C
+Date    : 08.05.92  Version 17
+Compiler: C, C-Refine
 **************************************************************************/
 /*
     Copyright (C) 1988,89,90,91 by Lutz Prechelt, Karlsruhe
@@ -27,7 +27,6 @@ Compiler: ANSI C
 *************************************************************************/
 
 #include <stdio.h>
-#include <string.h>
 #include <ctype.h>
 
 #include "cr_decl.h"  /* globale Funktionen, Typen und Daten */
@@ -39,10 +38,11 @@ static int   normal_scanner A((LINE_INFO*));
 static int   comment_scanner A((LINE_INFO*));
 static int   text_scanner A((LINE_INFO*));
 static int   char_scanner A((LINE_INFO*));
+static int   preprocessor_scanner A((LINE_INFO*));
 
 /*************************** defines ***************************************/
 
-#define push(ch) *(s++) = (char)ch
+#define push(ch) ((*((s)++)) = (char)(ch))
 
 #define leave_sequence    "leave"   /* e.g. "leave" (no leading blank!) */
 #define leave_sequence_length  5
@@ -59,17 +59,26 @@ static char *act;             /* current position in b */
 
 /***** Control *****/
 #if ansi
-static int (*scanner) (LINE_INFO*) = normal_scanner;
+static int (*scanner) (LINE_INFO*);
 #else
-static int (*scanner) ()           = normal_scanner;
+static int (*scanner) ();
 #endif
 /***** Status *****/
-static int  level = 0,                      /* brace-nesting */
-            just_was = normal_end_of_line,  /* event memory */
-            event = normal_end_of_line,
+static int  level,                 /* brace-nesting */
+            just_was, event,       /* event memory */
             semicolon_count,
             lines_in_denoter,
             old_indent;
+
+/*********************** init_scanner ************************************/
+
+extern void init_scanner ()
+{
+  /* Initializes the state of this module */
+  level = 0;
+  just_was = event = normal_end_of_line;
+  scanner = normal_scanner;
+}
 
 /*********************** get_line ****************************************/
 
@@ -87,26 +96,27 @@ extern void get_line (fp, l, semicolons)
      is generated.
      At end of file stop_processing is set to true. Problems yield a
      message and let 'errors' or 'warnings' increase.
-     This function uses the option indicator variables.
+     This function uses the option indicator variables, and the variables
+     line_no and commanded_line_no.
   */
   charp old_s = s;    /* store s to compute length later */
   bool stop = false;
   bool three_witches;
   semicolon_count = 0;
   {   /* init_l  (Level 1) */
-#line 107 "cr_getln.cr"
+#line 117 "cr_getln.cr"
 #if debug
     printf ("get_line:");
 #endif
     l->level   = level;   /* level is defined as level at start of line! */
     l->start   = s;
     l->indent  = 0;
-    l->type    = normal;
+    l->type    = normal_line;
   }
-#line 96 "cr_getln.cr"
+#line 106 "cr_getln.cr"
   if (just_was == normal_end_of_line) {
      {   /* read_line  (Level 1) */
-#line 116 "cr_getln.cr"
+#line 126 "cr_getln.cr"
      l->line_no = ++line_no;
      act = (char*)fgets (b, b_size, fp);  /* get next line*/
 #if debug
@@ -114,7 +124,7 @@ extern void get_line (fp, l, semicolons)
 #endif
      if (act == NULL) {                /* check for EOF */
         stop_processing = true;
-        l->type = empty;
+        l->type = empty_line;
         if (level > 0)
            error (Eeof_brace, NULL, line_no);
         if (scanner == comment_scanner)
@@ -140,18 +150,18 @@ extern void get_line (fp, l, semicolons)
            stop = true;
      old_indent = l->indent;    /* store for next call */
      }
-#line 99 "cr_getln.cr"
+#line 109 "cr_getln.cr"
   }
   else {                       /* continued line */
      l->indent = old_indent;
      l->line_no = line_no;
   }
   {   /* handle_line  (Level 1) */
-#line 150 "cr_getln.cr"
+#line 160 "cr_getln.cr"
   three_witches = l->indent == 0 && level > 0 && scanner == normal_scanner;
   if (three_witches && (int)*act == refinementsymbol)
        {   /* handle_refinement_declaration  (Level 2) */
-#line 171 "cr_getln.cr"
+#line 181 "cr_getln.cr"
        act++;                     /* skip refinementsymbol */
        push_refinement_name ();
        if (*act != ':')
@@ -160,69 +170,69 @@ extern void get_line (fp, l, semicolons)
           act++;
        if (level > 1)
           error (Erefdecl_nested, NULL, line_no);
-       l->type = refdecl;
+       l->type = refdecl_line;
        just_was = (*act == '\n' || *act == 0) ? normal_end_of_line :
                                                 continueing_end_of_line;
        }
-#line 153 "cr_getln.cr"
+#line 163 "cr_getln.cr"
   else {
      {   /* check_column_0  (Level 2) */
-#line 184 "cr_getln.cr"
+#line 194 "cr_getln.cr"
      if (three_witches && !iscntrl (*act) &&
          just_was != continueing_end_of_line &&
          *act != '}' && *act != '#' && *act != '*' && *act != '/')
         warning (Wcol0, act, line_no, 1);
      }
-#line 155 "cr_getln.cr"
+#line 165 "cr_getln.cr"
      if (just_was != refinementsymbol_found &&
          just_was != leave_keyword_found)
         event = (*scanner) (l);
      {   /* handle_event  (Level 2) */
-#line 190 "cr_getln.cr"
+#line 200 "cr_getln.cr"
      if (event == refinementsymbol_found || event == leave_keyword_found)
         {   /* handle_refinementcall_or_leave  (Level 3) */
-#line 196 "cr_getln.cr"
+#line 206 "cr_getln.cr"
         if (s - old_s == 0) {        /* line empty */
            push_refinement_name ();
-           l->type = event == leave_keyword_found ? leave : refcall;
+           l->type = event == leave_keyword_found ? leave_line : refcall_line;
            {   /* skip_semicolon_and_blanks  (Level 4) */
-#line 207 "cr_getln.cr"
+#line 217 "cr_getln.cr"
            if (*act == ';') {        /* skip semikolon if present */
               act++;
               semicolon_count++;
-              if (l->type == refcall)
-                 l->type = refcallr;   /* note the removed ";" */
+              if (l->type == refcall_line)
+                 l->type = refcallr_line;   /* note the removed ";" */
            }
            while (*(act++) == ' ')   /* skip following blanks */
                    ;
            act--;                    /* recover char after last blank */
            }
-#line 200 "cr_getln.cr"
+#line 210 "cr_getln.cr"
            just_was = (*act == 0 || *act == '\n') ? normal_end_of_line :
                                                     continueing_end_of_line;
         }
         else
            just_was = event;
         }
-#line 192 "cr_getln.cr"
+#line 202 "cr_getln.cr"
      else
         just_was = normal_end_of_line;
      }
-#line 159 "cr_getln.cr"
+#line 169 "cr_getln.cr"
      if (option_small || event == normal_end_of_line)
        {   /* delete_trailing_blanks  (Level 2) */
-#line 218 "cr_getln.cr"
+#line 228 "cr_getln.cr"
        while (*(s-1) == ' ')      /* remove trailing blanks */
-          s--;
+         s--;
        }
-#line 161 "cr_getln.cr"
+#line 171 "cr_getln.cr"
   }
   l->length = s - old_s;
   if (l->length == 0)
-     l->type = empty;
+     l->type = empty_line;
   push (0);  /* String Terminator */
   {   /* perhaps_warn_for_level_changes  (Level 2) */
-#line 222 "cr_getln.cr"
+#line 232 "cr_getln.cr"
   int lev = level;
   if (lev < 0) {  /* Syntax error!  (or C-Refine does not work...) */
      if (option_anyway)
@@ -233,17 +243,17 @@ extern void get_line (fp, l, semicolons)
   else if (lev > 5 && level > l->level)
         warning (Wnesting, NULL, line_no, 3);
   else if (l->indent > 35 && (
-#line 235 "cr_getln.cr"
-  l->type == refcall || l->type == refcallr)
-#line 231 "cr_getln.cr"
+#line 245 "cr_getln.cr"
+  l->type == refcall_line || l->type == refcallr_line)
+#line 241 "cr_getln.cr"
   && !option_small)
         warning (Wmuch_indent, NULL, line_no, 3);
   }
-#line 167 "cr_getln.cr"
-  assert (!(l->type == refdecl && semicolon_count != 0));
+#line 177 "cr_getln.cr"
+  assert (!(l->type == refdecl_line && semicolon_count != 0));
   *semicolons += semicolon_count;
   }
-#line 236 "cr_getln.cr"
+#line 246 "cr_getln.cr"
 }
 
 /********************** push_refinement_name *******************************/
@@ -263,9 +273,9 @@ static void push_refinement_name ()
   int ch;
   charp old_s = s, start = s;
   {   /* suppress_leading_blanks  (Level 1) */
-#line 265 "cr_getln.cr"
+#line 275 "cr_getln.cr"
   while (*act == ' ')               /* suppress leading blanks */
-     act++;
+    act++;
   }
   {   /* copy_legal_chars  (Level 1) */
   do {                              /* copy legal chars */
@@ -279,21 +289,21 @@ static void push_refinement_name ()
   while (*(s-1) == ' ' && s > old_s) /* suppress trailing blanks */
      s--;
   }
-#line 257 "cr_getln.cr"
+#line 267 "cr_getln.cr"
   assert (*(s-1) != ' ');
   assert (*old_s != ' ');
   assert (s - old_s >= 0);
   {   /* change_inner_blanks_to_underlines  (Level 1) */
-#line 281 "cr_getln.cr"
+#line 291 "cr_getln.cr"
   for (start++; start < s; start++) /* change inner blanks to underlines */
-     if (*start == ' ')
-        *start = '_';
+    if (*start == ' ')
+       *start = '_';
 #undef is_legal
   }
-#line 261 "cr_getln.cr"
+#line 271 "cr_getln.cr"
   if (s - old_s == 0)
      error (Erefname_missing, act, line_no);
-#line 285 "cr_getln.cr"
+#line 295 "cr_getln.cr"
 }
 
 /***********************  S C A N N I N G  *********************************/
@@ -306,7 +316,8 @@ static void push_refinement_name ()
 static int normal_scanner (l)
   LINE_INFO *l;
 {
-  /* Changes to reading comments, strings or quoted chars as necessary.
+  /* Changes to reading comments, strings, quoted chars or preprocessor
+     directives as necessary.
      Ends only at the end of a line.
      Tries to identify refinement calls and refinement declarations;
      in these cases the lines are reduced to only the refinement name.
@@ -319,7 +330,7 @@ static int normal_scanner (l)
       case 0   : return (normal_end_of_line);
       case '/' : if (*act == '*')              /* start of comment ? */
                     {   /* handle_normal_comment  (Level 1) */
-#line 337 "cr_getln.cr"
+#line 347 "cr_getln.cr"
                     if (!option_small) {
                        push (ch); push ('*');
                     }
@@ -327,40 +338,49 @@ static int normal_scanner (l)
                     scanner = comment_scanner;
                     return ((*scanner) (l));
                     }
-#line 310 "cr_getln.cr"
+#line 321 "cr_getln.cr"
                  else if (*act == '/' && option_cplusplus)
                     {   /* handle_doubleslash_style_comment  (Level 1) */
-#line 345 "cr_getln.cr"
+#line 355 "cr_getln.cr"
                     if (option_small)
-                       return (normal_end_of_line);   /* just pgnore rest of line */
+                       return (normal_end_of_line);   /* just pgnore
+rest of line */
                     push (ch); push (ch);             /*  put  //   */
                     act++;
                     while (*act != '\n' && *act != 0)   /* put rest of line */
                        push (*(act++));
                     return (normal_end_of_line);
                     }
-#line 312 "cr_getln.cr"
+#line 323 "cr_getln.cr"
                  else                           /* No --> normal */
                     push (ch);
                  break;
-      case dq  :
-                 {   /* handle_text_denoter  (Level 1) */
-#line 354 "cr_getln.cr"
-                 push (ch);
-                 scanner = text_scanner;
-                 lines_in_denoter = 0;
-                 return ((*scanner) (l));
-                 }
-#line 317 "cr_getln.cr"
-      case q   :
-                 {   /* handle_char_denoter  (Level 1) */
-#line 360 "cr_getln.cr"
-                 push (ch);
-                 scanner = char_scanner;
-                 lines_in_denoter = 0;
-                 return ((*scanner) (l));
-                 }
-#line 319 "cr_getln.cr"
+      case dq  : 
+      {   /* handle_text_denoter  (Level 1) */
+#line 364 "cr_getln.cr"
+      push (ch);
+      scanner = text_scanner;
+      lines_in_denoter = 0;
+      return ((*scanner) (l));
+      }
+#line 327 "cr_getln.cr"
+      case q   : 
+      {   /* handle_char_denoter  (Level 1) */
+#line 370 "cr_getln.cr"
+      push (ch);
+      scanner = char_scanner;
+      lines_in_denoter = 0;
+      return ((*scanner) (l));
+      }
+#line 328 "cr_getln.cr"
+      case '#' : 
+      {   /* handle_preprocessor_directive  (Level 1) */
+#line 376 "cr_getln.cr"
+      push (ch);
+      scanner = preprocessor_scanner;
+      return ((*scanner) (l));
+      }
+#line 329 "cr_getln.cr"
       case ';' : semicolon_count++;
                  push (';');
                  break;
@@ -373,8 +393,9 @@ static int normal_scanner (l)
       default  :
                  if (ch == refinementsymbol)
                    {   /* check_for_leave_or_refinement_call  (Level 1) */
-#line 366 "cr_getln.cr"
-                   /* Precondition: Refinement symbol found, 'act' is right behind it.
+#line 381 "cr_getln.cr"
+                   /* Precondition: Refinement symbol found, 'act' is
+right behind it.
                       if a 'leave' surrounded by blanks is found in front of the
                       refinement symbol, it and its blanks are stripped and
                       leave_keyword_found is returned.
@@ -386,7 +407,8 @@ static int normal_scanner (l)
                    s++;
                    if (!memcmp (s - leave_sequence_length, leave_sequence,
                                 leave_sequence_length)) {
-                      s -= leave_sequence_length;     /* Remove leave_sequence from Output */
+                      s -= leave_sequence_length;     /* Remove
+leave_sequence from Output */
                       return (leave_keyword_found);
                    }
                    else {
@@ -394,12 +416,12 @@ static int normal_scanner (l)
                       return (refinementsymbol_found);
                    }
                    }
-#line 331 "cr_getln.cr"
+#line 341 "cr_getln.cr"
                  else
                    push (ch);
     }
   }
-#line 385 "cr_getln.cr"
+#line 400 "cr_getln.cr"
 }
 
 /********************* comment_scanner *************************************/
@@ -419,7 +441,7 @@ static int comment_scanner (l)
       case 0   : return (normal_end_of_line);
       case '*' : if (*act == '/')       /* end of comment : */
                     {   /* handle_comment_end  (Level 1) */
-#line 411 "cr_getln.cr"
+#line 426 "cr_getln.cr"
                     if (!option_small) {
                        push (ch); push ('/');
                     }
@@ -427,13 +449,13 @@ static int comment_scanner (l)
                     scanner = normal_scanner;   /* change to normal scanner */
                     return ((*scanner) (l));    /* and continue scanning */
                     }
-#line 404 "cr_getln.cr"
+#line 419 "cr_getln.cr"
                  /* no break ! */
       default  : if (!option_small)
                     push (ch);
     }
   }
-#line 418 "cr_getln.cr"
+#line 433 "cr_getln.cr"
 }
 
 /********************* text_scanner *************************************/
@@ -456,7 +478,7 @@ static int text_scanner (l)
       case 0   : return (normal_end_of_line);  /* allowed ??? */
       case dq  : 
       {   /* end_of_stringdenoter  (Level 1) */
-#line 450 "cr_getln.cr"
+#line 465 "cr_getln.cr"
       push (ch);
       if (lines_in_denoter > 1)
          warning (Wlong_string, act-1, line_no,
@@ -464,7 +486,7 @@ static int text_scanner (l)
       scanner = normal_scanner;
       return ((*scanner) (l));
       }
-#line 439 "cr_getln.cr"
+#line 454 "cr_getln.cr"
       case '\\': push (ch);
                  if (*act == dq || *act == '\\') {
                     push (*act);
@@ -474,7 +496,7 @@ static int text_scanner (l)
       default  : push (ch);
     }
  }
-#line 457 "cr_getln.cr"
+#line 472 "cr_getln.cr"
 }
 
 /********************* char_scanner *************************************/
@@ -494,7 +516,7 @@ static int char_scanner (l)
       case 0   : return (normal_end_of_line);  /* allowed ??? */
       case q   : 
       {   /* end_of_chardenoter  (Level 1) */
-#line 486 "cr_getln.cr"
+#line 501 "cr_getln.cr"
       push (ch);
       if (lines_in_denoter > 1)
          warning (Wlong_char, act-1, line_no,
@@ -502,7 +524,7 @@ static int char_scanner (l)
       scanner = normal_scanner;
       return ((*scanner) (l));
       }
-#line 475 "cr_getln.cr"
+#line 490 "cr_getln.cr"
       case '\\': push (ch);
                  if (*act == q || *act == '\\') {
                     push (*act);
@@ -512,6 +534,160 @@ static int char_scanner (l)
       default  : push (ch);
     }
   }
-#line 493 "cr_getln.cr"
+#line 508 "cr_getln.cr"
+}
+
+/********************* preprocessor_scanner ******************************/
+
+static int preprocessor_scanner (l)
+  LINE_INFO *l;
+{
+  /* Scans a line with a preprocessor directive on it.
+     If this line contains a #line directive, reads the line number and
+     file name and sets line_no and name_in accordingly.
+     This scanner is called immediately after the # has been seen.
+     The line is copied verbatim.
+  */
+  int ch;
+  ch = *(act++);
+  {   /* skip_whitespace  (Level 1) */
+#line 528 "cr_getln.cr"
+  for (;;) {
+    switch (ch) {
+      case ' ' :
+      case TAB : push (ch);
+                 break;
+      case '\n':
+      case 0   : scanner = normal_scanner;
+                 return (normal_end_of_line);
+      default  : 
+  goto skip_whitespace_1;
+#line 537 "cr_getln.cr"
+    }
+    ch = *(act++);
+  }
+skip_whitespace_1: ;
+  }
+  {   /* try_to_read_line_command  (Level 1) */
+#line 542 "cr_getln.cr"
+  /* precondition:  ch = <first nonwhitespace character after '#' >
+     postcondition: ch = <first char not belonging to line command>
+  */
+  {   /* read_the_command_token  (Level 2) */
+#line 552 "cr_getln.cr"
+  /* ch = <first nonwhitespace character after '#' > */
+  if (strncmp ("line", act, 4)) {
+    if (!isdigit (ch))
+  goto try_to_read_line_command_1;
+  }
+  else {
+    push (*(act++));
+    push (*(act++));
+    push (*(act++));
+    push (*(act++));
+    ch = *(act++);
+    if (ch != ' ' && ch != TAB)  /* 'line<something> without whitespace */
+  goto try_to_read_line_command_1;
+  }
+  }
+  {   /* skip_whitespace  (Level 2) */
+#line 528 "cr_getln.cr"
+  for (;;) {
+    switch (ch) {
+      case ' ' :
+      case TAB : push (ch);
+                 break;
+      case '\n':
+      case 0   : scanner = normal_scanner;
+                 return (normal_end_of_line);
+      default  : 
+  goto skip_whitespace_2;
+#line 537 "cr_getln.cr"
+    }
+    ch = *(act++);
+  }
+skip_whitespace_2: ;
+  }
+  {   /* read_the_line_number  (Level 2) */
+#line 568 "cr_getln.cr"
+  int number = 0;
+  while (isdigit (ch)) {
+    push (ch);
+    number = 10*number + (ch - '0');
+    ch = *(act++);
+  }
+  line_no = commanded_line_no = number - 1;
+  }
+  {   /* skip_whitespace  (Level 2) */
+#line 528 "cr_getln.cr"
+  for (;;) {
+    switch (ch) {
+      case ' ' :
+      case TAB : push (ch);
+                 break;
+      case '\n':
+      case 0   : scanner = normal_scanner;
+                 return (normal_end_of_line);
+      default  : 
+  goto skip_whitespace_3;
+#line 537 "cr_getln.cr"
+    }
+    ch = *(act++);
+  }
+skip_whitespace_3: ;
+  }
+  {   /* read_the_filename  (Level 2) */
+#line 577 "cr_getln.cr"
+  bool has_quotes = ch == '\"';
+  char *current_letter = name_in;
+  if (has_quotes) {
+    push (ch);
+    ch = *(act++);
+  }
+  for (;;) {
+    switch (ch) {
+      case '\n':
+      case 0   : 
+      {   /* terminate_name_in  (Level 3) */
+#line 600 "cr_getln.cr"
+      if (current_letter != name_in)  /* if new name present */
+        *current_letter = 0;  /* terminate name */
+      copy_with_doubled_backslashes (name_in, modified_name_in);
+      }
+#line 587 "cr_getln.cr"
+                 if (has_quotes)
+                   warning (Eunterminated, name_in, line_no, warning_level);
+                 scanner = normal_scanner;
+                 return (normal_end_of_line);
+      case dq  : 
+      {   /* terminate_name_in  (Level 3) */
+#line 600 "cr_getln.cr"
+      if (current_letter != name_in)  /* if new name present */
+        *current_letter = 0;  /* terminate name */
+      copy_with_doubled_backslashes (name_in, modified_name_in);
+      }
+  goto read_the_filename_1;
+#line 593 "cr_getln.cr"
+      default  : push (ch);
+                 *(current_letter++) = ch;
+    }
+    ch = *(act++);
+  }
+read_the_filename_1: ;
+  }
+try_to_read_line_command_1: ;
+  }
+  {   /* copy_rest_of_line  (Level 1) */
+#line 605 "cr_getln.cr"
+  for (;;) {
+    switch (ch) {
+      case '\n':
+      case 0   : scanner = normal_scanner;
+                 return (normal_end_of_line);
+      default  : push (ch);
+    }
+    ch = *(act++);
+  }
+  }
 }
 

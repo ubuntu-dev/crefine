@@ -1,7 +1,7 @@
 /*************************************************************************
 Module  : Header file: mothers little helpers --- bool, assert, prototype args 
 Author  : Lutz Prechelt, Karlsruhe
-Date    : 11.06.91
+Date    : 08.05.92
 Compiler: ANSI C, K&R C
 **************************************************************************
 /*
@@ -23,7 +23,7 @@ Compiler: ANSI C, K&R C
 #ifndef stdh_
 #define stdh_
 
-#if ansi
+#if __STDC__
 #define A(a) a
 #else
 #define A(a) ()

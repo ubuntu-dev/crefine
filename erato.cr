@@ -19,8 +19,6 @@ Date    : 23.01.91
     Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 */
 
-#include <stdio.h>
-
 #define MAX        10000
 #define PRIME      0
 #define NON_PRIME  1

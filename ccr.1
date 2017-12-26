@@ -1,0 +1,74 @@
+.TH CCR 1 "12 June 1992"
+.SH NAME
+ccr \- front end to use C-Refine with cc
+.SH SYNOPSIS
+.B ccr
+[
+.B options
+]
+.I inputfile ...
+.SH DESCRIPTION
+.B ccr
+is a shell script that will act very much like your cc does.
+The only difference is that C-Refine files are processed by crefine first,
+before they are handed to the cc compiler.
+
+The way that ccr works is the following:
+It looks at every argument you supply in order. If the argument is a
+filename ending in 'r', it is processed by crefine and the filename of
+the output file replace the original one. All other arguments are kept
+as they are. The resulting argument string is then used for a call
+to
+.B
+cc.
+This call will be suppressed, if any errors occured during one of the
+crefine runs.
+.SH OPTIONS
+All options you supply are handed right through to cc.
+If you want to supply options for crefine, set up the environment
+variable CREFINEOPTIONS as a string containing the options.
+.SH FILES
+.PD 0
+.TP 18
+ccr
+the ccr shell script
+.TP
+myfilename1.cr
+C\-with\-refinements input file.
+.TP
+myfilename1.c
+generated C input file.
+.TP
+myfilename2.c
+C input file.
+.PD
+.SH ENVIRONMENT
+.PD 0
+.TP 18
+CREFINEOPTIONS
+contains the option string to be used for calls of crefine performed
+by ccr.
+.PD
+.SH EXAMPLES
+.TP
+ccr -g -o firsttest firsttest.cr myfile.c myfile2.o
+processes the input file firsttest.cr producing the output file
+firsttest.c using crefine, compiles firsttest.c and myfile.c with
+option -g and links both wigh myfile2.o producing firsttest using cc.
+.SH DIAGNOSTICS
+All diagnostic messages stem from either crefine or cc.
+.SH SEE ALSO
+cc(1), crefine(1)
+.SH BUGS
+It is not possible to give options for crefine directly.
+.SH VERSION
+This manpage is for ccr version 1.0 
+.SH AUTHOR
+.nf
+Lutz Prechelt  (prechelt@ira.uka.de)
+Institut fuer Programmstrukturen und Datenorganisation
+Universitaet Karlsruhe
+D-7500 Karlsruhe
+Germany
+
+.fi

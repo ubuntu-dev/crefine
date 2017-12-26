@@ -3,8 +3,8 @@
 Project : C-Refine Precompiler
 Module  : main module
 Author  : Lutz Prechelt, Karlsruhe
-Date    : 10.06.91  Version 16
-Compiler: ANSI C, C-Refine 2.3 (bootstrapped)
+Date    : 12.06.92  Version 17
+Compiler: C, C-Refine
 **************************************************************************/
 /*
     Copyright (C) 1988,89,90,91 by Lutz Prechelt, Karlsruhe
@@ -37,10 +37,8 @@ REMARK:
 
 Variants:
 #define deutsch   fuer deutsche Meldungen statt englische
-#define ms_dos    for  MS-DOS Operating System (Compiler Microsoft C 5.0)
-#define unix      for  Unix
-#define vms       for  VMS
-#define ansi      for  ANSI-C Compiler
+#define ms_dos    for  MS-DOS "Operating System"
+#define __STDC__  for  ANSI-C Compiler (as opposed to K&R-C)
 
 For version changes see refinement startup message and file cr_texts.h
 
@@ -121,7 +119,7 @@ Version 2.4             (14, 15, 16)
   Names and Comments changed to english (was german before)
   error in level switching of line numbering fixed.
 
-10.06.91 ()
+10.06.91 (comp.sources.misc)
   History translated to english
   some small corrections
   corr: REF_INFO storage has to be 0-initialized,
@@ -129,12 +127,35 @@ Version 2.4             (14, 15, 16)
   Eliminated duplication of function declarations for ansi and non-ansi
   by introduction of the A(a) macro in std.h
 
+
+Version 3.0             (17)
+
+15.11.91
+  Getargs deeply changed: disallow mixing of options and normal args but
+  allow values for options to be in separate argument.
+  Handle multiple input file names.
+  Introduced -o option for explicit output filename, all other are built
+  by deleting a trailing r from input filename.
+  Handle "-" for stdin and stdout in filenames.
+  React on #line commands in input file.  !!!INCOMPLETE!!!
+  Changed #include commands in sourcess for better portability
+  Replaced 'ansi' #define with '__STDC__'
+12.06.92 (comp.sources.reviewed)
+  replaced -q (quiet) flag with a -v (verbose) flag with inverse meaning.
+  added humorous messages for english, changed -m option appropriately.
+
 =============================================================================
 #endif
 
 #include <stdio.h>
-#include <string.h>
+
+#if __STDC__
 #include <stdlib.h>
+#else
+extern char* malloc();  /* some systems don't have malloc.h or the like */
+extern char* calloc();
+#endif
+
 #include <time.h>
 
 #define DATA_HERE     /* Here the data declarations are NOT extern */
@@ -144,8 +165,8 @@ Version 2.4             (14, 15, 16)
 
 /******************* lokal Functions ************************************/
 
-extern int  main A((int argc,  charp *argv));
-extern int  crefine A((int argc, charp *argv));
+extern int  main A((int argc,  charp argv[]));
+static int  crefine A(());
 static void process_c_refine A((FILE *in, FILE *out));
 static void process_line A((FILE *out, int semicolons));
 static void insert_refinements A((FILE *out));
@@ -156,10 +177,7 @@ static void put_indent A((FILE *out, int how_much));
 static void put_line A((FILE *out, LINE_INFO *line, int additional_indent,
                       int min_linenumbering_level));
 static int  refinement_nr A((char *refinementname));
-static void allocate A((charp *buffer, unsigned *size, unsigned minsize));
-static void copy_with_doubled_backslashes A((char *string, char *copy));
-static void do_expire A((int day, int month, int year_in_century));
-static void reset_l_r_s A((void));
+static void reset_l_r_s A(());
 
 /*********************** Lokal Data ************************************/
 
@@ -171,27 +189,20 @@ static REFS  r;           /* refinement info */
 static int   r_pos;
 
 /***** Status *****/
-static int   old_level,          /* level at line before */
-             commanded_line_no;  /* line_no according to last line_cmd */
+static int   old_level;          /* level at line before */
 
 /***** Sonstiges *****/
 static char  blanks[] =  /* indents are made from this. */
   "                                                                       ";
 /* "blanks" is taken as  72 Blanks long (see put_indent) */
 
-static option_msg;
+static char *outputfilename = "";
+static int   option_msg;
 
-#define refdecl_line(i)  /* line no of refinement head of r[i] */\
+#define refdecl_line_nr(i)  /* line number of refinement head of r[i] */\
                           (l [r[i].firstentry].line_no)
 
 /******************************** crefine *********************************/
-
-extern int main (argc, argv)      /* MAIN */
-  int   argc;
-  charp argv[];
-{
-  return (crefine (argc, argv));
-}
 
 static ARG argtab[] = {
 #if  deutsch
@@ -199,7 +210,6 @@ static ARG argtab[] = {
    "alle: Ausgabedatei trotz Fehlern nicht loeschen" },
   {'c', BOOLEAN, &option_comment,  "Refinementnamen-Kommentare in Ausgabe" },
   {'e', BOOLEAN, &option_indent,   "#line Kommandos einruecken" },
-  {'f', BOOLEAN, &option_feedback, "Fortschrittsanzeige (Zeilennummern)" },
 #if ms_dos
   {'I', BOOLEAN, &option_ibmchars,
    "erlaube IBM internationale Zeichen fuer Namen" },
@@ -207,26 +217,27 @@ static ARG argtab[] = {
   {'k', BOOLEAN, &option_comment,  "Refinementnamen-Kommentare in Ausgabe" },
   {'l', BOOLEAN, &option_list,     "liste alle Refinementnamen" },
   {'m', CHARACTER, &option_msg,
-   "Meldungen in: d=deutsch, e=english, sonst humorig" },
+   "Meldungen in: d=deutsch, e=english, Grossbuchstabe -> humorig" },
   {'n', INTEGER, &numbering_level,
    "Stufe der Numerierung mit #line Kommandos" },
+  {'o', STRING,  &outputfilename,  "setze Name der Ausgabedatei" },
   {'p', BOOLEAN, &option_cplusplus,"C++ Modus" },
-  {'q', BOOLEAN, &option_cplusplus,"keine Startmeldung ausgeben" },
+  {'v', BOOLEAN, &option_verbose,    "Versionsmeldung ausgeben" },
   {'r', CHARACTER, &refinementsymbol, "Refinementsymbol (als Zeichen)" },
   {'R', INTEGER, &refinementsymbol, "Refinementsymbol (als Zahl)" },
   {'s', BOOLEAN, &option_small,    "strippen: Kompaktifizierte Ausgabe" },
   {'w', INTEGER, &warning_level,   "Warnstufe (0 - 3)" }
+  {'A', INTEGER, &feedback_interval, "Intervall der Fortschrittsanzeige" },
   {'F', INTEGER, &maxerrors,       "Max. Anzahl Fehler" },
-  {'L', INTEGER, &b_size,          "Max. Zeilenlaenge" },
+  {'L', INTEGER, &(int*)b_size,    "Max. Zeilenlaenge in Byte" },
   {'N', INTEGER, &maxref,          "Max. Refinements je Funktion" },
-  {'P', INTEGER, &s_size,          "Codepuffer in Bytes" },
+  {'P', INTEGER, &(int*)s_size,    "Codepuffer in Bytes" },
   {'T', INTEGER, &tabsize,         "Tabulatorgroesse" },
   {'W', INTEGER, &maxwarnings,     "Max. Anzahl Warnungen" },
-  {'Z', INTEGER, &maxline,         "Max. Zeilen je Funktion" },
+  {'Z', INTEGER, &maxline,         "Max. Anzahl Zeilen je Funktion" },
 #else
   {'a', BOOLEAN, &option_anyway,   "anyway: don't delete output on errors" },
   {'c', BOOLEAN, &option_comment,  "comment refinement names in output" },
-  {'f', BOOLEAN, &option_feedback, "feedback that you work" },
   {'i', BOOLEAN, &option_indent,   "indent the #line commands" },
 #if ms_dos
   {'I', BOOLEAN, &option_ibmchars,
@@ -234,11 +245,12 @@ static ARG argtab[] = {
 #endif
   {'l', BOOLEAN, &option_list,     "list all refinement names" },
   {'m', CHARACTER, &option_msg,
-   "Messages in: g=german, e=english, else sense of humor ?" },
+   "Messages in: g=german, e=english, G,E=humorous" },
   {'n', INTEGER, &numbering_level,
    "level of numbering with #line commands" },
+  {'o', STRING,  (int*)&outputfilename,  "set output filename" },
   {'p', BOOLEAN, &option_cplusplus,"C++ mode" },
-  {'q', BOOLEAN, &option_quiet,    "quiet mode (no startup message)" },
+  {'v', BOOLEAN, &option_verbose,    "verbose mode (startup message)" },
   {'r', CHARACTER, &refinementsymbol, "refinementsymbol (character form)" },
   {'R', INTEGER, &refinementsymbol, "refinementsymbol (decimal form)" },
   {'s', BOOLEAN, &option_small,    "small compactified output" },
@@ -246,114 +258,85 @@ static ARG argtab[] = {
   {'B', INTEGER, (int*)&s_size,    "code buffer in bytes" },
   {'E', INTEGER, &maxerrors,       "max errors" },
   {'L', INTEGER, (int*)&maxline,   "max lines per function" },
+  {'M', INTEGER, (int*)&b_size,    "max length of a line" },
   {'N', INTEGER, (int*)&maxref,    "max refinements per function" },
+  {'P', INTEGER, &feedback_interval, "interval of progress display" },
   {'T', INTEGER, &tabsize,         "tab size" },
   {'W', INTEGER, &maxwarnings,     "max warnings" },
 #endif
 };
 
 
-extern int crefine (argc, argv)    /* C-REFINE */
+extern int main (argc, argv)
   int   argc;
   charp argv[];
 {
-  /* Analyses options and opens files.
-     Then calls  process_c_refine and closes files again.
-     Returns the number of errors that have been found
+  /* Analyses options and generates pairs of input/output filenames.
+     Then calls  crefine with each of these pairs.
+     Returns the number of errors that have been found totally.
   */
-  bool two_filenames_given;
-  int  wrong_options;
+  int  wrong_options, total_errors = 0;
+  int  i;
   FILE *in, *out;
+  bool explicit_outputfilename_given;
   {   /* analysis_of_options  (Level 1) */
-#line 303 "crefine.cr"
-  option_anyway = option_feedback = option_indent = option_comment
+#line 297 "crefine.cr"
+  option_anyway = option_indent = option_comment
                 = option_list = option_ibmchars = option_cplusplus
                 = false;
   option_small = true;
   numbering_level = 3;
 #if deutsch
-  option_msg  = 'd';
-  msg_type    =  0;  /* deutsche Meldungen als Standard */
+  option_msg  = 'd';   /* deutsche Meldungen als Standard */
 #else
-  option_msg  = 'e';
-  msg_type    =  1;  /* english warnings and errors as default */
+  option_msg  = 'e';   /* english warnings and errors as default */
 #endif
   refinementsymbol = std_refinementsymbol;
+  outputfilename   = "";
   tabsize          = 1;
   warning_level    = 3;
   maxline          = STD_MAXLINE;
   maxref           = STD_MAXREF;
   b_size           = STD_MAXLINELENGTH;
   s_size           = STD_S_SIZE;
+  feedback_interval= 0;  /* feedback off */
   maxerrors        = STD_MAXERRORS;
   maxwarnings      = STD_MAXWARNINGS;
-  wrong_options = getargs (&argc, argv, argtab, ARGTABSIZE (argtab));
+  wrong_options = getargs (&argc, &argv, argtab, ARGTABSIZE (argtab));
   if (option_small) {
      tabsize = 1;
   }
-  if (option_msg == 'd' || option_msg == 'D' ||
-      option_msg == 'g' || option_msg == 'G')
-     msg_type = 0;
-  else if (option_msg == 'e' || option_msg == 'E')
-     msg_type = 1;
-  else
-     msg_type = 2;
-  two_filenames_given = argc == 3;
+  switch (option_msg) {
+    case 'd':
+    case 'g':  msg_type = 0;  break;
+    case 'e':  msg_type = 1;  break;
+    case 'D':
+    case 'G':  msg_type = 2;  break;
+    case 'E':  msg_type = 3;  break;
   }
-#line 267 "crefine.cr"
-  if (wrong_options || argc>>1 != 1) {
+  }
+#line 282 "crefine.cr"
+  if (wrong_options || argc <= 1) {
      print_usage (argv[0], usagestring[msg_type],
                   argtab, ARGTABSIZE (argtab));
     {   /* startup_message  (Level 1) */
-#line 338 "crefine.cr"
+#line 332 "crefine.cr"
     fprintf (stderr,
              "C-Refine Precompiler   %s\n", versionstring[msg_type]);
     fprintf (stderr,
-             "Copyright (C) 1988,89,90,91  Lutz Prechelt, Karlsruhe\n");
+             "Copyright (C) 1988-1992  Lutz Prechelt, Karlsruhe\n");
     }
-#line 271 "crefine.cr"
+#line 286 "crefine.cr"
      exit (100);
   }
-  if (!option_quiet)
+  if (option_verbose)
     {   /* startup_message  (Level 1) */
-#line 338 "crefine.cr"
+#line 332 "crefine.cr"
     fprintf (stderr,
              "C-Refine Precompiler   %s\n", versionstring[msg_type]);
     fprintf (stderr,
-             "Copyright (C) 1988,89,90,91  Lutz Prechelt, Karlsruhe\n");
+             "Copyright (C) 1988-1992  Lutz Prechelt, Karlsruhe\n");
     }
-  {   /* open_files_and_complain_if_necessary  (Level 1) */
-  strcpy (name_in, argv[1]);            /* get */
-#if ms_dos
-  in = fopen (name_in, "rt");  /* read, translated mode */
-#else
-  in = fopen (name_in, "r");  /* read */
-#endif
-  if (in == NULL || ferror (in)) {
-     fprintf (stderr, Eopen[msg_type], name_in);
-     exit (100);
-  }
-  copy_with_doubled_backslashes (name_in, modified_name_in);
-  if (two_filenames_given) {            /* if second name given */
-     strcpy (name_out, argv[2]);        /* take it as it is */
-  }
-  else {                                /* else */
-     strcpy (name_out, argv[1]);        /* take first name */
-     if (name_out[strlen(name_out)-1] == 'r')
-       name_out[strlen(name_out)-1] = 0; /* remove 'r' from end */
-     else
-       strcat (name_out, "RRR");         /* or append 'RRR' */
-  }
-#if ms_dos
-  out = fopen (name_out, "wt");  /* write, translated mode */
-#else
-  out = fopen (name_out, "w");  /* write */
-#endif
-  if (out == NULL || ferror (out)) {
-     fprintf (stderr, Eopen[msg_type], name_out);
-     exit (100);
-  }
-  }
   {   /* reserve_memory_and_complain_if_necessary  (Level 1) */
   b      = malloc (b_size);
   r      = (REFS)calloc ((maxref+1), sizeof (REF_INFO));
@@ -364,15 +347,99 @@ extern int crefine (argc, argv)    /* C-REFINE */
      exit (100);
   }
   }
-#line 277 "crefine.cr"
+#line 291 "crefine.cr"
+  explicit_outputfilename_given = (outputfilename[0] != 0);
+  for (i = 1; i < argc; i++)
+    {   /* generate_filename_pair_and_call_crefine  (Level 1) */
+#line 348 "crefine.cr"
+    strcpy (name_in, argv[i]);
+    copy_with_doubled_backslashes (name_in, modified_name_in);
+    if (explicit_outputfilename_given)
+       {   /* use_explicit_filename  (Level 2) */
+#line 358 "crefine.cr"
+       strcpy (name_out, outputfilename);
+       total_errors += crefine ();
+       }
+#line 352 "crefine.cr"
+    else if (!strcmp (name_in, "-"))
+       {   /* use_standard_out  (Level 2) */
+#line 362 "crefine.cr"
+       strcpy (name_out, "-");
+       total_errors += crefine ();
+       }
+#line 354 "crefine.cr"
+    else
+       {   /* use_input_file_name_and_strip_r  (Level 2) */
+#line 366 "crefine.cr"
+       strcpy (name_out, argv[i]);
+       if ((
+#line 377 "crefine.cr"
+       name_out[strlen(name_out)-1] == 'r')
+#line 367 "crefine.cr"
+       ) {
+         name_out[strlen(name_out)-1] = 0; /* remove 'r' from end */
+         total_errors += crefine ();
+       }
+       else {
+         fprintf (stderr, Emissing_r[msg_type], name_in);
+         total_errors++;
+       }
+       }
+    }
+#line 294 "crefine.cr"
+  return (total_errors);
+#line 379 "crefine.cr"
+}
+
+
+static int crefine ()    /* C-REFINE */
+{
+  /* Opens files name_in and name_out.
+     Then calls  process_c_refine and closes files again.
+     Returns the number of errors that have been found
+  */
+  FILE *in, *out;
+  {   /* open_files_and_complain_if_necessary  (Level 1) */
+#line 419 "crefine.cr"
+  if (!strcmp (name_in, "-"))
+    in = stdin;
+  else {
+#if ms_dos
+  in = fopen (name_in, "rt");  /* read, translated mode */
+#else
+  in = fopen (name_in, "r");  /* read */
+#endif
+  }
+  if (in == NULL || ferror (in)) {
+     fprintf (stderr, Eopen[msg_type], name_in);
+     exit (100);
+  }
+  if (!strcmp (name_out, "-"))
+    out = stdout;
+  else {
+#if ms_dos
+  out = fopen (name_out, "wt");  /* write, translated mode */
+#else
+  out = fopen (name_out, "w");  /* write */
+#endif
+  }
+  if (out == NULL || ferror (out)) {
+     fprintf (stderr, Eopen[msg_type], name_out);
+     exit (100);
+  }
+  }
+#line 390 "crefine.cr"
   /* here we go: */
   rewind (in);  /* Begin at the beginning, then proceed until you come */
                 /* to the end, there stop.   (from: Alice in Wonderland) */
   process_c_refine (in, out);
-  fclose (in);
-  fclose (out);   /* Schliessen vor unlink noetig ! */
-  if (errors && !option_anyway) /* don't produce errorneous outputfiles */
-     unlink (name_out);         /* delete file */
+  if (in != stdin)
+    fclose (in);
+  if (out != stdout) {
+    fclose (out);   /* Schliessen vor unlink noetig ! */
+    if (errors && !option_anyway) /* don't produce errorneous outputfiles */
+       unlink (name_out);         /* delete file if possible */
+  }
   if (errors || warnings)
 #if deutsch
      fprintf (stderr, "%d Fehler%s   %d Warnung%s   Ausgabedatei %s\n",
@@ -389,7 +456,7 @@ extern int crefine (argc, argv)    /* C-REFINE */
                  "deleted" : (errors ? "kept anyway" : "is doubtful"));
 #endif
   return (errors);
-#line 385 "crefine.cr"
+#line 446 "crefine.cr"
 }
 
 /************************ process_c_refine *********************************/
@@ -406,28 +473,34 @@ static void process_c_refine (in, out)
      s, l, r and the option indicators.
   */
   commanded_line_no = line_no = 0;
+  errors = warnings = 0;
+  stop_processing = error_in_this_function = false;
   reset_l_r_s ();
+  init_scanner ();
   if (numbering_level > 0)
     /* we get a linefeed anyway! */
     fprintf (out, "#line 1 \"%s\"", modified_name_in);
   while (!stop_processing)
      {   /* handle_next_line  (Level 1) */
-#line 412 "crefine.cr"
+#line 475 "crefine.cr"
      int semicolons = 0;
-     if (option_feedback && line_no % FEEDBACK_INTERVAL == 0)
+     if (feedback_interval && line_no % feedback_interval == 0)
         cout (line_no);
      if (ferror (in))
         fatal_error (Ereadinput, l[l_pos-1].start, line_no);
      if (ferror (out))
         fatal_error (Ewriteoutput, NULL, line_no);
+#undef  test_
+#ifdef test_
+  usleep (5000);
+#endif
      get_line (in, l+l_pos, &semicolons);
      process_line (out, semicolons);
      }
-#line 407 "crefine.cr"
-  if (option_feedback)
+#line 471 "crefine.cr"
+  if (feedback_interval)
      cout (line_no);
-  free (s_root);
-#line 421 "crefine.cr"
+#line 488 "crefine.cr"
 }
 
 /************************** process_line ************************************/
@@ -450,23 +523,23 @@ static void process_line (out, semicolons)
      r[r_pos - 1].semicolons += semicolons;
   if (old_level == 0)
      {   /* we_came_from_level_0  (Level 1) */
-#line 447 "crefine.cr"
+#line 514 "crefine.cr"
      assert (l_pos == 0);   /* nothing can be stored from level 0 */
      if (l[0].level == 0 || stop_processing)
         {   /* remains_on_level_0_so_just_copy_it  (Level 2) */
-#line 454 "crefine.cr"
-        if (l[0].type != normal && l[0].type != empty)
+#line 521 "crefine.cr"
+        if (l[0].type != normal_line && l[0].type != empty_line)
            error (Elevel0_ref, l[0].start, line_no);
         put_line (out, &l[0], 0, 1);
         reset_l_r_s ();
         }
-#line 450 "crefine.cr"
+#line 517 "crefine.cr"
      else
         {   /* function_has_begun  (Level 2) */
-#line 460 "crefine.cr"
+#line 527 "crefine.cr"
         error_in_this_function = false;
         old_level = l[0].level;    /* neuen Level merken */
-        if (l[0].type == refdecl && r_pos < maxref) {  /* empty function */
+        if (l[0].type == refdecl_line && r_pos < maxref) {  /* empty function */
            r[r_pos].name         = l[0].start;
            r[r_pos].firstentry   = 0;
            r[r_pos].active       = false;
@@ -476,24 +549,24 @@ static void process_line (out, semicolons)
         l_pos++;                   /* store line */
         }
      }
-#line 443 "crefine.cr"
+#line 510 "crefine.cr"
   else
      {   /* we_were_inside_a_function_or_so  (Level 1) */
-#line 472 "crefine.cr"
+#line 539 "crefine.cr"
      if (l[l_pos].level == 0 || stop_processing)
         {   /* but_now_we_are_outside  (Level 2) */
-#line 478 "crefine.cr"
+#line 545 "crefine.cr"
         insert_refinements (out);
         put_line (out, &l[l_pos-1], 0, 1);  /* last line (Blockklammer) */
         put_line (out, &l[l_pos], 0, 1);    /* the level 0 line */
         error_in_this_function = false;
         reset_l_r_s ();
         }
-#line 474 "crefine.cr"
+#line 541 "crefine.cr"
      else
         {   /* and_still_keep_being_in  (Level 2) */
-#line 485 "crefine.cr"
-        if (l[l_pos].type == refdecl && r_pos < maxref) {
+#line 552 "crefine.cr"
+        if (l[l_pos].type == refdecl_line && r_pos < maxref) {
            r[r_pos].name         = l[l_pos].start;   /* enter Refinement */
            r[r_pos].active       = false;
            r[r_pos].firstentry   = l_pos;
@@ -507,7 +580,7 @@ static void process_line (out, semicolons)
            fatal_error (Ebytes_in_func, l[l_pos].start, line_no);
         }
      }
-#line 497 "crefine.cr"
+#line 564 "crefine.cr"
 }
 
 /************************ insert_refinements ******************************/
@@ -529,70 +602,70 @@ static void insert_refinements (out)
   r[r_pos].firstentry = l_pos-1;       /* line of Blockklammer */
   r[r_pos].name       = NULL;
   {   /* generate_refinement_list_if_necessary  (Level 1) */
-#line 544 "crefine.cr"
+#line 611 "crefine.cr"
   if (option_list && r_pos > 0) {
      fputc ('\n', stdout);
      for (i = 0; i < r_pos; i++)
-         fprintf (stdout, "(%d) %s\n", refdecl_line (i), r[i].name);
+         fprintf (stdout, "(%d) %s\n", refdecl_line_nr (i), r[i].name);
   }
   }
   {   /* find_last_line_to_insert  (Level 1) */
   end = r[0].firstentry - 1;
-  while (l[end].type == empty)   /* suppress trailing empty lines */
+  while (l[end].type == empty_line)   /* suppress trailing empty lines */
      end--;
   }
-#line 519 "crefine.cr"
+#line 586 "crefine.cr"
   for (i = 0; i <= end; i++) {  /* lines up to first ref. declaration */
       switch (l[i].type) {
-         case refcall  :
-         case refcallr :
+         case refcall_line  :
+         case refcallr_line :
                 {   /* insert_refinement  (Level 1) */
-#line 556 "crefine.cr"
+#line 623 "crefine.cr"
                 insert_refinement (out, l+i, l[i].indent, 1);
                 if (stop_processing)
                    return;
                 }
-#line 524 "crefine.cr"
+#line 591 "crefine.cr"
                 break;
-         case leave    :
+         case leave_line    :
                 {   /* whatshallthatbe  (Level 1) */
-#line 561 "crefine.cr"
+#line 628 "crefine.cr"
                 assert (false);
                 }
-#line 527 "crefine.cr"
+#line 594 "crefine.cr"
                 break;
-         case normal   :
+         case normal_line   :
                 {   /* insert_normal_line  (Level 1) */
-#line 564 "crefine.cr"
+#line 631 "crefine.cr"
                 put_line (out, &l[i], 0, 1);
                 }
-#line 530 "crefine.cr"
+#line 597 "crefine.cr"
                 break;
-         case empty    :
+         case empty_line    :
                 putc ('\n', out);
                 commanded_line_no++;
                 break;
-         case refdecl  :
+         case refdecl_line  :
          default       :
                  assert (false);
       }
   }
   {   /* maybe_give_sermon_on_refinements  (Level 1) */
-#line 567 "crefine.cr"
+#line 634 "crefine.cr"
   for (i = 0; i < r_pos; i++)
       if (r[i].semicolons > 50)
          warning (Wlong_ref, l[r[i].firstentry].start,
-                  refdecl_line (i), 3);
+                  refdecl_line_nr (i), 3);
       else if (r[i].calls > 5 && r[i].semicolons > 2)
          warning (Wref_often_used, l[r[i].firstentry].start,
-                  refdecl_line (i), 3);
+                  refdecl_line_nr (i), 3);
       else if (r[i].calls == 0)
          warning (Wref_unused, l[r[i].firstentry].start,
-                  refdecl_line (i), 1);
+                  refdecl_line_nr (i), 1);
   }
-#line 541 "crefine.cr"
+#line 608 "crefine.cr"
   stop_processing = stop_processing || extern_stop;  /* Merging-Restore */
-#line 577 "crefine.cr"
+#line 644 "crefine.cr"
 }
 
 /************************* insert_refinement ******************************/
@@ -623,76 +696,76 @@ static void insert_refinement (out, z, startindent, recursive_level)
   int  nr, ref_startindent, end;
   assert (startindent > 0);
   nr = refinement_nr ((
-#line 713 "crefine.cr"
+#line 780 "crefine.cr"
   z->start)
-#line 606 "crefine.cr"
+#line 673 "crefine.cr"
   );  /* search for refinement */
   if (nr == -1) {
      error (Eref_not_decl, (
-#line 713 "crefine.cr"
+#line 780 "crefine.cr"
      z->start)
-#line 608 "crefine.cr"
+#line 675 "crefine.cr"
      , z->line_no);
      return;
   }
   else if (r[nr].active)
      {   /* complain_for_recursive_refinement_call  (Level 1) */
-#line 630 "crefine.cr"
+#line 697 "crefine.cr"
      error (Erecursive_ref, (
-#line 713 "crefine.cr"
+#line 780 "crefine.cr"
      z->start)
-#line 630 "crefine.cr"
+#line 697 "crefine.cr"
      , z->line_no);
      stop_processing = true;
      return;
      }
-#line 613 "crefine.cr"
+#line 680 "crefine.cr"
   else {
      r[nr].calls++;           /* register the call */
      r[nr].active   = true;
      r[nr].leave_it = false;
   }
   end = r[nr+1].firstentry - 1;
-  while (l[end].type == empty)   /* suppress trailing empty lines */
+  while (l[end].type == empty_line)   /* suppress trailing empty lines */
      end--;
   i = r[nr].firstentry + 1;
   if (i > end)
-     warning (Wref_empty, l[r[nr].firstentry].start, refdecl_line (nr), 2);
+     warning (Wref_empty, l[r[nr].firstentry].start, refdecl_line_nr (nr), 2);
   else
      {   /* insert_the_refinement  (Level 1) */
-#line 635 "crefine.cr"
+#line 702 "crefine.cr"
      /* for an empty refinement, this is not called at all! */
      {   /* write_indentation_and_opening_klammer  (Level 2) */
-#line 664 "crefine.cr"
+#line 731 "crefine.cr"
      int sc = r[nr].semicolons;
      if (sc > 0)
         put_indent (out, startindent);
      putc (sc > 0 ? '{' : '(', out);  /* Klammer auf */
      if (option_comment && sc > 0)
         fprintf (out, Tlistline[msg_type], (
-#line 713 "crefine.cr"
+#line 780 "crefine.cr"
         z->start)
-#line 669 "crefine.cr"
+#line 736 "crefine.cr"
         , recursive_level);
      }
-#line 637 "crefine.cr"
+#line 704 "crefine.cr"
      ref_startindent = l[i].indent;
      for ( ; i <= end; i++) {
          switch (l[i].type) {
-            case refcall  :
-            case refcallr :
+            case refcall_line  :
+            case refcallr_line :
                    {   /* insert_refinement  (Level 2) */
-#line 672 "crefine.cr"
+#line 739 "crefine.cr"
                    insert_refinement (out, l+i,
                                       startindent + l[i].indent
                                                   - ref_startindent,
                                       recursive_level+1);
                    }
-#line 643 "crefine.cr"
+#line 710 "crefine.cr"
                    break;
-            case leave    :
+            case leave_line    :
                    {   /* insert_goto_statement  (Level 2) */
-#line 678 "crefine.cr"
+#line 745 "crefine.cr"
                    int leave_nr = refinement_nr (l[i].start);
                    if (leave_nr == -1)
                       error (Eunknown_leave, l[i].start, l[i].line_no);
@@ -705,35 +778,35 @@ static void insert_refinement (out, z, startindent, recursive_level)
                                l[i].start, r[leave_nr].calls);
                    }
                    }
-#line 646 "crefine.cr"
+#line 713 "crefine.cr"
                    break;
-            case normal   :
+            case normal_line   :
                    {   /* insert_normal_line  (Level 2) */
-#line 691 "crefine.cr"
+#line 758 "crefine.cr"
                    put_line (out, &l[i], startindent - ref_startindent, (
-#line 694 "crefine.cr"
+#line 761 "crefine.cr"
                    r[nr].semicolons == 0 ? 3 : 2)
-#line 691 "crefine.cr"
+#line 758 "crefine.cr"
                    );
                    }
-#line 649 "crefine.cr"
+#line 716 "crefine.cr"
                    break;
-            case empty    :
+            case empty_line    :
                    putc ('\n', out);
                    commanded_line_no++;
                    break;
-            case refdecl  :
+            case refdecl_line  :
             default       :
                     assert (false);
          }
      }
      if (r[nr].leave_it)
         {   /* generate_label  (Level 2) */
-#line 697 "crefine.cr"
+#line 764 "crefine.cr"
         fprintf (out, "\n%s_%d: ;", (
-#line 713 "crefine.cr"
+#line 780 "crefine.cr"
         z->start)
-#line 697 "crefine.cr"
+#line 764 "crefine.cr"
         , r[nr].calls);
         commanded_line_no++;
         }
@@ -745,15 +818,15 @@ static void insert_refinement (out, z, startindent, recursive_level)
      }
      else {
         putc (')', out);
-        if (z->type == refcallr)  /* semicolon has been removed illegaly */
+        if (z->type == refcallr_line)  /* semicolon has been removed illegaly */
            putc (';', out);
      }
      }
      }
-#line 626 "crefine.cr"
+#line 693 "crefine.cr"
   r[nr].active = false;
   return;
-#line 714 "crefine.cr"
+#line 781 "crefine.cr"
 }
 
 /************************* line_cmd **************************************/
@@ -807,7 +880,7 @@ static void put_line (out, line, additional_indent, min_level)
   if (line->line_no != commanded_line_no + 1)
      line_cmd (out, line->line_no, line->indent + additional_indent,
                min_level);
-  if (line->type == empty) {    /* for empty lines: nothing */
+  if (line->type == empty_line) {    /* for empty lines: nothing */
      putc ('\n', out);
      commanded_line_no++;
      return;
@@ -844,13 +917,13 @@ static int refinement_nr (name)
          matches++;
       }
   if (matches > 1)
-     error (Eref_multi_decl, r[match].name, refdecl_line (match));
+     error (Eref_multi_decl, r[match].name, refdecl_line_nr (match));
   return (match);
 }
 
 /********************* Auxiliary functions ******************************/
 
-static void copy_with_doubled_backslashes (string, copy)
+extern void copy_with_doubled_backslashes (string, copy)
   char *string, *copy;
 {
   /* copies the string string to the location copy. All backslash
@@ -874,27 +947,6 @@ static void copy_with_doubled_backslashes (string, copy)
        copy++;               /* proceed one byte */
   }
   *copy = 0;
-}
-
-
-static void do_expire (day, month, year)
-  int day, month, year;
-{
-  long act_time;
-  struct tm *t;
-  time (&act_time);
-  t = localtime (&act_time);
-  month--;   /* localtime uses months 0 - 11 ! */
-  if ((
-#line 851 "crefine.cr"
-  t->tm_year > year || (t->tm_year == year && t->tm_mon > month) ||
-  (t->tm_year == year && t->tm_mon == month && t->tm_mday > day))
-#line 845 "crefine.cr"
-  ) {
-     fprintf (stderr, "\n%s\n\n", Thas_expired[msg_type]);
-     exit (100);
-  }
-#line 853 "crefine.cr"
 }
 
 

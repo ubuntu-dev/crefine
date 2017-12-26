@@ -1,16 +1,37 @@
- Things to do in C-Refine     as of 22.08.91
-==========================
 
-1. Lutz Prechelt, 11.06.91
-   Handle #line directives in form (<ws> is whitespace, i.e. Blank or Tab)
-   #[<ws>...][line<ws>...]<linenumber>[<ws>..."<filename>"]
-   so e.g.
-   #line 11 "abc.x"
-   # 15 "abc.c"
+   ==========================
+    Things to do to C-Refine
+   ==========================
 
-2. Lutz Prechelt, 11.06.91
-   Handle stdin and stdout as files via "-" syntax
+-- Lutz Prechelt, 08.05.92
+   Improve ccr to allow direct option passing to crefine.
+   Be careful not to get dependent on which options the C compiler
+   recognizes.
 
-3. Lutz Prechelt, 11.06.91
-   Handle multiple input files:
-   Enforce stripping of "r" at end of input file name
+-- Lutz Prechelt, 08.05.92
+   Improve ccr to allow calling the preprocessor before running crefine.
+
+-- Lutz Prechelt, 08.05.92
+   Write a manpage for ccr.
+
+-- Lutz Prechelt, 08.05.92
+   Write an Emacs editing mode 'C-Refine mode', based on 'C mode'.
+
+-- Lutz Prechelt, 08.05.92
+   Extend the idea to other languages, e.g. Lisp, Scheme, Eiffel, Sather
+   It is difficult to do it as simple as C-Refine now is for a language
+   that does not have something equivalent to #line (except if the 
+   language is interpretive instead of compiled).
+
+-- Lutz Prechelt, 08.05.92
+   Use GNU-style option processing.
+
+-- Lutz Prechelt, 12.06.92
+   Write a concept paper, explaining more deeply how C-Refine works and
+   why and what it is good for.
+
+-- Lutz Prechelt, 12.06.92
+   Make all buffers fully dynamic (autoexpanding) to avoid the need
+   for the options selecting their size.
+
+

@@ -2,7 +2,7 @@
 Project : C-Refine Precompiler
 Module  : Declarations for global Functions, Types and Data
 Author  : Lutz Prechelt, Karlsruhe
-Date    : 11.06.91  Version 16
+Date    : 12.06.92  Version 17
 Compiler: ANSI C
 **************************************************************************/
 /*
@@ -27,16 +27,22 @@ Compiler: ANSI C
 
 #include "std.h"
 
+#if BSD
+#include <strings.h>
+#else
+#include <string.h>
+#endif
+
 /***************** globale Typen und Konstanten **************************/
 
-#define normal    1        /* Types for LINE_INFO */
-#define empty     2    /* empty line */
-#define refcall   3    /* refinement call */
-#define refcallr  4    /* dito with "removed semicolon" */
-#define refdecl   5    /* refinement declaration */
-#define leave     6    /* leave construct */
+#define normal_line    1        /* Types for LINE_INFO */
+#define empty_line     2    /* empty line */
+#define refcall_line   3    /* refinement call */
+#define refcallr_line  4    /* dito with "removed semicolon" */
+#define refdecl_line   5    /* refinement declaration */
+#define leave_line     6    /* leave construct */
 
-#define TAB       9       /* has to be recognized */
+#define TAB       9       /* ASCII Tabulator has to be recognized */
 
 #if ms_dos
 #define std_refinementsymbol   175   /* IBM: Double arrow to the right */
@@ -82,9 +88,10 @@ typedef REF_INFO   *REFS;
 
 /************************* External Functions ****************************/
 
-/***** crefine.c *****/
-extern int  crefine A((int, charp*));
-/***** cr_getln.c *****/
+/***** crefine *****/
+extern void copy_with_doubled_backslashes A((char *string, char *copy));
+/***** cr_getln *****/
+extern void init_scanner A(());
 extern void get_line A((FILE*, LINE_INFO*, int*));
 /***** cr_talk *****/
 extern void cout A((int));
@@ -99,10 +106,8 @@ extern void warning A((charp[], charp, int, int));
 extern charp
  usagestring[],
  versionstring[],
- expirestring[],
  Tlistline[],
  Tnear[],
- Thas_expired[],
  Wempty_function[],
  Wlong_ref[],
  Wref_often_used[],
@@ -116,12 +121,14 @@ extern charp
  Eopen[],
  Ereadinput[],
  Ewriteoutput[],
+ Emissing_r[],
  Elevel0_ref[],
  Elines_in_func[],
  Ebytes_in_func[],
  Eref_not_decl[],
  Erecursive_ref[],
  Eunknown_leave[],
+ Eunterminated[],
  Eleave_unpresent[],
  Eref_multi_decl[],
  Ememory[],
@@ -140,21 +147,20 @@ extern charp
 #define extern
 #endif
 /***** Control *****/
-#define FEEDBACK_INTERVAL  64
 extern bool option_anyway,
             option_comment,
-            option_feedback,
             option_indent,
             option_ibmchars,
             option_list,
             option_cplusplus,
-            option_quiet,
+            option_verbose,
             option_small,
             stop_processing;
 
 extern int  refinementsymbol,
             tabsize,
             numbering_level,
+            feedback_interval,
             msg_type,
             warning_level,
             maxerrors,
@@ -171,13 +177,14 @@ extern unsigned
             s_size;   /* Gesamtgroesse des Zeilenspeichers */
 
 /***** Status *****/
-extern int  errors, warnings,
-            line_no;
-extern bool error_in_this_function;
-extern char name_in[200],     /* Dateinamen: Eingabedatei/Ausgabedatei */
-            modified_name_in[200],  /* (mit verdoppelten Backslashes) */
-            name_out[200];
+extern int  errors, warnings,   /* numbers of ...*/
+            line_no,            /* current (virtual) line number */
+            commanded_line_no;  /* line_no according to last line_cmd */
 
+extern bool error_in_this_function;
+extern char name_in[200],     /* filenames: input or virtual input */
+            modified_name_in[200],  /* (with doubled backslashes) */
+            name_out[200];          /* output */
 
 #ifdef DATA_HERE
 #undef extern

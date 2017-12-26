@@ -1,0 +1,132 @@
+
+
+
+CCR(1)                   USER COMMANDS                     CCR(1)
+
+
+
+NAME
+     ccr - front end to use C-Refine with cc
+
+SYNOPSIS
+     ccr [ options ] inputfile ...
+
+DESCRIPTION
+     ccr is a shell script that will act very much like  your  cc
+     does.   The  only difference is that C-Refine files are pro-
+     cessed by crefine first, before they are handed  to  the  cc
+     compiler.
+
+     The way that ccr works is the following: It looks  at  every
+     argument  you supply in order. If the argument is a filename
+     ending in 'r', it is processed by crefine and  the  filename
+     of the output file replace the original one. All other argu-
+     ments are kept as they are. The resulting argument string is
+     then  used  for a call to cc.  This call will be suppressed,
+     if any errors occured during one of the crefine runs.
+
+OPTIONS
+     All options you supply are handed right through to  cc.   If
+     you  want to supply options for crefine, set up the environ-
+     ment variable CREFINEOPTIONS  as  a  string  containing  the
+     options.
+
+FILES
+     ccr               the ccr shell script
+     myfilename1.cr    C-with-refinements input file.
+     myfilename1.c     generated C input file.
+     myfilename2.c     C input file.
+
+ENVIRONMENT
+     CREFINEOPTIONS    contains the option string to be used  for
+                       calls of crefine performed by ccr.
+
+EXAMPLES
+     ccr -g -o firsttest firsttest.cr myfile.c myfile2.o
+          processes the input  file  firsttest.cr  producing  the
+          output   file   firsttest.c   using  crefine,  compiles
+          firsttest.c and myfile.c with option -g and links  both
+          wigh myfile2.o producing firsttest using cc.
+
+DIAGNOSTICS
+     All diagnostic messages stem from either crefine or cc.
+
+SEE ALSO
+     cc(1), crefine(1)
+
+BUGS
+     It is not possible to give options for crefine directly.
+
+
+
+
+Sun Release 4.1     Last change: 12 June 1992                   1
+
+
+
+
+
+
+CCR(1)                   USER COMMANDS                     CCR(1)
+
+
+
+VERSION
+     This manpage is for ccr version 1.0
+
+AUTHOR
+     Lutz Prechelt  (prechelt@ira.uka.de)
+     Institut fuer Programmstrukturen und Datenorganisation
+     Universitaet Karlsruhe
+     D-7500 Karlsruhe
+     Germany
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Sun Release 4.1     Last change: 12 June 1992                   2
+
+
+

@@ -1,4 +1,3 @@
-#line 1 "getargs.cr"
 /*************************************************************************
 Module  : getargs -- command line option processor
 Author  : Lutz Prechelt, Karlsruhe
@@ -37,7 +36,7 @@ Dies ist ein Utility zum bequemeren Auswerten von Optionen auf der
 Kommandozeile (d.h. mit argc, argv).
 
 Es wird dazu vom Benutzer eine Tabelle ("argtab") aufgestellt, in der zu
-jeder Option der Optionsbuchstabe, ein Argumententyp
+jeder Option der Optionsbuchstabe, ein Argumententyp 
 (BOOL, CHAR, INT, STRING) und eine Variable angegeben werden,
 in der das Resultat abgelegt werden soll.
 Ferner kann man hier noch einen Kommentarstring zu jeder Option angeben.
@@ -58,7 +57,7 @@ gibt unter Benutzung der Kommentarstrings aus argtab eine Kurzbeschreibung zum
 korrekten Aufruf aller Optionen und des Gesamtprogramms nach stderr aus.
 
 Beispiel:
-#include <getargs.h>
+  #include <getargs.h>
   int a = 1, b = 'B', c;
   char *d = "";
   ARG argtab[] = { {'a', BOOLEAN,  &a,       "use alternate mode" },
@@ -146,11 +145,11 @@ extern int getargs (argc, argv, tabp, tabsize)
      -- forces end of options.
      options are searched for in tabp and are removed from argv by
      shifting the remaining arguments left.
-     options are handled according to their tabp entry,
+     options are handled according to their tabp entry, 
      illegal options or missing or illegal values are complained.
      Otherwise the corresponding variable is set according to the value
-     given with the option.
-     Only non-options are still in argv after this procedure, their
+     given with the option. 
+     Only non-options are still in argv after this procedure, their 
      number is given back in *argc.
      The return value is the number of errors found.
   */
@@ -158,51 +157,48 @@ extern int getargs (argc, argv, tabp, tabsize)
   int    errors = 0, error;
   ARG   *argp;
   for ((*argv)++; --(*argc) > 0; (*argv)++)
-    {   /* handle_this_arg  (Level 1) */
-#line 166 "getargs.cr"
-    if ((
-#line 196 "getargs.cr"
-    /* the argument "--" forces end of option processing */
-    (*argv)[0][0] == '-'  &&  (*argv)[0][1] == '-'  &&  (*argv)[0][2] == 0)
-#line 166 "getargs.cr"
-    ) {
-       **argv = argv0;  /* restore program name */
-       return (errors);
-    }
-    else if (!is_option (**argv)) {
-       (*argv)--; (*argc)++;
-       **argv = argv0;   /* restore program name */
-       return (errors);
-    }
-    else {
-       char **next_arg = *argc > 1 ? (*argv)+1 : &nilarg;
-       p = (**argv) + 1;         /* Option -> handle it */
-       while (*p) {
-         error = 0;
-         /* One Optionsign can have multiple Options following */
-         if (argp = find_argument ((int)*p, tabp, tabsize)) /* if exists */
-           {   /* read_option_value  (Level 2) */
-#line 200 "getargs.cr"
-           error = !set_argument (argp, &p, next_arg);
-           }
-#line 183 "getargs.cr"
-         if (!argp || error) {   /* if not exists or invalid value */
-            fprintf (stderr, "%s : %s\n", ERRMSG, **argv);   /* then #$% */
-            errors++;
-            break;
-         }
-         if (*next_arg == 0) {  /* Next argv element already used up */
-           (*argv)++;
-           (*argc)--;
-         }
-       }
-     }
-    }
-#line 161 "getargs.cr"
+    `handle this arg;
   (*argv)--;
   **argv = argv0;   /* restore program name */
   return (errors);
-#line 202 "getargs.cr"
+
+`handle this arg:
+   if (`is end of options) {
+      **argv = argv0;  /* restore program name */
+      return (errors);
+   }
+   else if (!is_option (**argv)) {
+      (*argv)--; (*argc)++;
+      **argv = argv0;   /* restore program name */
+      return (errors);
+   }
+   else {
+      char **next_arg = *argc > 1 ? (*argv)+1 : &nilarg;
+      p = (**argv) + 1;         /* Option -> handle it */
+      while (*p) {
+        error = 0;
+        /* One Optionsign can have multiple Options following */
+        if (argp = find_argument ((int)*p, tabp, tabsize)) /* if exists */
+          `read option value;
+        if (!argp || error) {   /* if not exists or invalid value */
+           fprintf (stderr, "%s : %s\n", ERRMSG, **argv);   /* then #$% */
+           errors++;
+           break;
+        }
+        if (*next_arg == 0) {  /* Next argv element already used up */
+          (*argv)++;
+          (*argc)--;
+        }
+      }
+    }
+
+`is end of options:
+  /* the argument "--" forces end of option processing */
+  (*argv)[0][0] == '-'  &&  (*argv)[0][1] == '-'  &&  (*argv)[0][2] == 0
+
+`read option value:
+   error = !set_argument (argp, &p, next_arg);
+
 }
 
 /*---------------------------------------------------------
@@ -226,90 +222,77 @@ static int set_argument (argp, linep, next_arg)
   ++(*linep);   /* skip Optionname */
   old_linep = *linep;
   switch (argp->type) {
-        case INTEGER:    
-        {   /* get_integer  (Level 1) */
-#line 233 "getargs.cr"
-        stoi (linep, p);
-        if (old_linep == *linep) {  /* no integer found in linep */
-          stoi (next_arg, p);
-          if (old_next_arg != *next_arg)
-            *next_arg = 0;
-        }
-        return (old_linep != *linep || *next_arg == 0);
-        }
-#line 226 "getargs.cr"
-        case BOOLEAN:    
-        {   /* get_bool  (Level 1) */
-#line 242 "getargs.cr"
-        if ((
-#line 257 "getargs.cr"
-        **linep == '-' || **linep == '+')
-#line 242 "getargs.cr"
-        ) {  /* + or - given right behind */
-           *p = (**linep == '+');
-           ++(*linep);
-        }
-        else if ((
-#line 260 "getargs.cr"
-        **linep != 0)
-#line 246 "getargs.cr"
-        )  /* no value given */
-           *p = 1;   /* assume true */
-        else if ((
-#line 263 "getargs.cr"
-        (**next_arg == '-' || **next_arg == '+') &&
-        (*next_arg)[1] == 0)
-#line 248 "getargs.cr"
-        ) {
-           *p = **next_arg == '+';
-           *next_arg = 0;
-        }
-        else                        /* else assume TRUE */
-           *p = 1;
-        return (1);
-        }
-#line 227 "getargs.cr"
-        case CHARACTER:  
-        {   /* get_char  (Level 1) */
-#line 267 "getargs.cr"
-        *p = (int)**linep;
-        if (*p != 0) {
-          ++(*linep);      /* go on one char */
-          return (1);
-        }
-        /* we must get character from next_arg, if possible */
-        if ((
-#line 282 "getargs.cr"
-        (*next_arg)[0] != 0  &&  (*next_arg)[1] == 0)
-#line 273 "getargs.cr"
-        ) {
-          *p = **next_arg;
-          *next_arg = 0;
-          return (1);
-        }
-        else
-          return (0);
-        }
-#line 228 "getargs.cr"
-        case STRING:     
-        {   /* get_string  (Level 1) */
-#line 285 "getargs.cr"
-        if (**linep != 0) {
-          *(char **)p = *linep;
-          *linep = "";   /* take all the rest */
-          return (1);
-        }
-        /* we must get string from next_arg */
-        *(char **)p = *next_arg;
-        *next_arg = 0;
-        return (1);
-
-#undef p
-        }
-#line 229 "getargs.cr"
+        case INTEGER:    `get integer;
+        case BOOLEAN:    `get bool;
+        case CHARACTER:  `get char;
+        case STRING:     `get string;
   }
   return (0);  /* just to keep certain compilers quiet */
-#line 296 "getargs.cr"
+
+`get integer:
+   stoi (linep, p);
+   if (old_linep == *linep) {  /* no integer found in linep */
+     stoi (next_arg, p);
+     if (old_next_arg != *next_arg)
+       *next_arg = 0;
+   }
+   return (old_linep != *linep || *next_arg == 0);
+
+`get bool:
+   if (`plus or minus follows) {  /* + or - given right behind */
+      *p = (**linep == '+');
+      ++(*linep);
+   }
+   else if (`other things follow)  /* no value given */
+      *p = 1;   /* assume true */
+   else if (`next arg is plus or minus) {
+      *p = **next_arg == '+';
+      *next_arg = 0;
+   }
+   else                        /* else assume TRUE */
+      *p = 1;
+   return (1);
+
+`plus or minus follows:
+   **linep == '-' || **linep == '+'
+
+`other things follow:
+   **linep != 0
+
+`next arg is plus or minus:
+   (**next_arg == '-' || **next_arg == '+') &&
+   (*next_arg)[1] == 0
+
+`get char:
+   *p = (int)**linep;
+   if (*p != 0) {
+     ++(*linep);      /* go on one char */
+     return (1);
+   }
+   /* we must get character from next_arg, if possible */
+   if (`next_arg is a character) {
+     *p = **next_arg;
+     *next_arg = 0;
+     return (1);
+   }
+   else
+     return (0);
+     
+`next_arg is a character:
+   (*next_arg)[0] != 0  &&  (*next_arg)[1] == 0
+
+`get string:
+   if (**linep != 0) {
+     *(char **)p = *linep;
+     *linep = "";   /* take all the rest */
+     return (1);
+   }
+   /* we must get string from next_arg */
+   *(char **)p = *next_arg;
+   *next_arg = 0;
+   return (1);
+
+#undef p
 }
 
 /*---------------------------------------------------------
@@ -343,7 +326,7 @@ extern void print_usage (progname, usage, tabp, tabsize)
   char *p;
   int  i;
   fprintf (stderr, "\n%s: %s %s\n%s:\n", USAGE, progname,
-           usage, VALID_OPT_ARE);
+	   usage, VALID_OPT_ARE);
   for (i = 0; i < tabsize; i++, tabp++) {
       fprintf (stderr, "-%c", tabp->arg);
       p = tabp->errmsg;
@@ -396,44 +379,42 @@ static int stoi (instr, result)
      str++;
   }
   if (*str == '0')
-    {   /* read_octal_or_hex  (Level 1) */
-#line 392 "getargs.cr"
-    ++str;
-    error = 0;
-    if (toupper (*str) == 'X') {
-       str++;
-       while(isxdigit(*str)) {
-             num *= 16;
-             num += isdigit (*str) ? *str - '0'
-                             : toupper (*str) - 'A'+ 10;
-             str++;
-       }
-    }
-    else {
-       while ('0' <= *str && *str <= '7') {
-             num *= 8;
-             num += *str++ - '0';
-       }
-    }
-    }
-#line 383 "getargs.cr"
+    `read octal or hex;
   else
-    {   /* read_decimal  (Level 1) */
-#line 411 "getargs.cr"
-    while (isdigit (*str)) {
-      error = 0;
-      num *= 10;
-      num += *str++ - '0';
-
-    }
-    }
-#line 385 "getargs.cr"
+    `read decimal;
   if (error)
     return (error);
   *instr = str;
   *result = sign ? -num : num;
   return (0);
-#line 418 "getargs.cr"
+
+`read octal or hex:
+   ++str;
+   error = 0;
+   if (toupper (*str) == 'X') {
+      str++;
+      while(isxdigit(*str)) {
+            num *= 16;
+            num += isdigit (*str) ? *str - '0' 
+      	                    : toupper (*str) - 'A'+ 10;
+            str++;
+      }
+   }
+   else {
+      while ('0' <= *str && *str <= '7') {
+            num *= 8;
+            num += *str++ - '0';
+      }
+   }
+
+`read decimal:
+   while (isdigit (*str)) {
+     error = 0;
+     num *= 10;
+     num += *str++ - '0';
+
+   }
+
 }
 
 /************* Hauptprogramm zum Testen **********************************/

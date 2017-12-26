@@ -2,8 +2,8 @@
 Project : C-Refine Precompiler
 Module  : main module
 Author  : Lutz Prechelt, Karlsruhe
-Date    : 10.06.91  Version 16
-Compiler: ANSI C, C-Refine 2.3 (bootstrapped)
+Date    : 12.06.92  Version 17
+Compiler: C, C-Refine
 **************************************************************************/
 /*
     Copyright (C) 1988,89,90,91 by Lutz Prechelt, Karlsruhe
@@ -36,10 +36,8 @@ REMARK:
 
 Variants:
 #define deutsch   fuer deutsche Meldungen statt englische
-#define ms_dos    for  MS-DOS Operating System (Compiler Microsoft C 5.0)
-#define unix      for  Unix
-#define vms       for  VMS
-#define ansi      for  ANSI-C Compiler
+#define ms_dos    for  MS-DOS "Operating System"
+#define __STDC__  for  ANSI-C Compiler (as opposed to K&R-C)
 
 For version changes see refinement startup message and file cr_texts.h
 
@@ -120,7 +118,7 @@ Version 2.4             (14, 15, 16)
   Names and Comments changed to english (was german before)
   error in level switching of line numbering fixed.
   
-10.06.91 ()
+10.06.91 (comp.sources.misc)
   History translated to english
   some small corrections
   corr: REF_INFO storage has to be 0-initialized, 
@@ -128,12 +126,35 @@ Version 2.4             (14, 15, 16)
   Eliminated duplication of function declarations for ansi and non-ansi
   by introduction of the A(a) macro in std.h  
 
+
+Version 3.0             (17)
+
+15.11.91
+  Getargs deeply changed: disallow mixing of options and normal args but
+  allow values for options to be in separate argument.
+  Handle multiple input file names.
+  Introduced -o option for explicit output filename, all other are built
+  by deleting a trailing r from input filename.
+  Handle "-" for stdin and stdout in filenames.
+  React on #line commands in input file.  !!!INCOMPLETE!!!
+  Changed #include commands in sourcess for better portability
+  Replaced 'ansi' #define with '__STDC__'
+12.06.92 (comp.sources.reviewed)
+  replaced -q (quiet) flag with a -v (verbose) flag with inverse meaning.
+  added humorous messages for english, changed -m option appropriately.
+
 =============================================================================
 #endif
 
 #include <stdio.h>
-#include <string.h>
+
+#if __STDC__
 #include <stdlib.h>
+#else
+extern char* malloc();  /* some systems don't have malloc.h or the like */
+extern char* calloc();
+#endif
+
 #include <time.h>
 
 #define DATA_HERE     /* Here the data declarations are NOT extern */
@@ -143,8 +164,8 @@ Version 2.4             (14, 15, 16)
 
 /******************* lokal Functions ************************************/
 
-extern int  main A((int argc,  charp *argv));
-extern int  crefine A((int argc, charp *argv));
+extern int  main A((int argc,  charp argv[]));
+static int  crefine A(());
 static void process_c_refine A((FILE *in, FILE *out));
 static void process_line A((FILE *out, int semicolons));
 static void insert_refinements A((FILE *out));
@@ -155,10 +176,7 @@ static void put_indent A((FILE *out, int how_much));
 static void put_line A((FILE *out, LINE_INFO *line, int additional_indent,
                       int min_linenumbering_level));
 static int  refinement_nr A((char *refinementname));
-static void allocate A((charp *buffer, unsigned *size, unsigned minsize));
-static void copy_with_doubled_backslashes A((char *string, char *copy));
-static void do_expire A((int day, int month, int year_in_century));
-static void reset_l_r_s A((void));
+static void reset_l_r_s A(());
 
 /*********************** Lokal Data ************************************/
 
@@ -170,27 +188,20 @@ static REFS  r;           /* refinement info */
 static int   r_pos;
 
 /***** Status *****/
-static int   old_level,          /* level at line before */
-             commanded_line_no;  /* line_no according to last line_cmd */
+static int   old_level;          /* level at line before */
 
 /***** Sonstiges *****/
 static char  blanks[] =  /* indents are made from this. */
   "                                                                       ";
 /* "blanks" is taken as  72 Blanks long (see put_indent) */
 
-static option_msg;
+static char *outputfilename = "";
+static int   option_msg;
 
-#define refdecl_line(i)  /* line no of refinement head of r[i] */\
+#define refdecl_line_nr(i)  /* line number of refinement head of r[i] */\
                           (l [r[i].firstentry].line_no)
 
 /******************************** crefine *********************************/
-
-extern int main (argc, argv)      /* MAIN */
-  int   argc;
-  charp argv[];
-{
-  return (crefine (argc, argv));
-}
 
 static ARG argtab[] = {
 #if  deutsch
@@ -198,7 +209,6 @@ static ARG argtab[] = {
    "alle: Ausgabedatei trotz Fehlern nicht loeschen" },
   {'c', BOOLEAN, &option_comment,  "Refinementnamen-Kommentare in Ausgabe" },
   {'e', BOOLEAN, &option_indent,   "#line Kommandos einruecken" },
-  {'f', BOOLEAN, &option_feedback, "Fortschrittsanzeige (Zeilennummern)" },
 #if ms_dos
   {'I', BOOLEAN, &option_ibmchars, 
    "erlaube IBM internationale Zeichen fuer Namen" },
@@ -206,26 +216,27 @@ static ARG argtab[] = {
   {'k', BOOLEAN, &option_comment,  "Refinementnamen-Kommentare in Ausgabe" },
   {'l', BOOLEAN, &option_list,     "liste alle Refinementnamen" },
   {'m', CHARACTER, &option_msg,    
-   "Meldungen in: d=deutsch, e=english, sonst humorig" },
+   "Meldungen in: d=deutsch, e=english, Grossbuchstabe -> humorig" },
   {'n', INTEGER, &numbering_level,
    "Stufe der Numerierung mit #line Kommandos" },
+  {'o', STRING,  &outputfilename,  "setze Name der Ausgabedatei" },
   {'p', BOOLEAN, &option_cplusplus,"C++ Modus" },
-  {'q', BOOLEAN, &option_cplusplus,"keine Startmeldung ausgeben" },
+  {'v', BOOLEAN, &option_verbose,    "Versionsmeldung ausgeben" },
   {'r', CHARACTER, &refinementsymbol, "Refinementsymbol (als Zeichen)" },
   {'R', INTEGER, &refinementsymbol, "Refinementsymbol (als Zahl)" },
   {'s', BOOLEAN, &option_small,    "strippen: Kompaktifizierte Ausgabe" },
   {'w', INTEGER, &warning_level,   "Warnstufe (0 - 3)" }
+  {'A', INTEGER, &feedback_interval, "Intervall der Fortschrittsanzeige" },
   {'F', INTEGER, &maxerrors,       "Max. Anzahl Fehler" },
-  {'L', INTEGER, &b_size,          "Max. Zeilenlaenge" },
+  {'L', INTEGER, &(int*)b_size,    "Max. Zeilenlaenge in Byte" },
   {'N', INTEGER, &maxref,          "Max. Refinements je Funktion" },
-  {'P', INTEGER, &s_size,          "Codepuffer in Bytes" },
+  {'P', INTEGER, &(int*)s_size,    "Codepuffer in Bytes" },
   {'T', INTEGER, &tabsize,         "Tabulatorgroesse" },
   {'W', INTEGER, &maxwarnings,     "Max. Anzahl Warnungen" },
-  {'Z', INTEGER, &maxline,         "Max. Zeilen je Funktion" },
+  {'Z', INTEGER, &maxline,         "Max. Anzahl Zeilen je Funktion" },
 #else
   {'a', BOOLEAN, &option_anyway,   "anyway: don't delete output on errors" },
   {'c', BOOLEAN, &option_comment,  "comment refinement names in output" },
-  {'f', BOOLEAN, &option_feedback, "feedback that you work" },
   {'i', BOOLEAN, &option_indent,   "indent the #line commands" },
 #if ms_dos
   {'I', BOOLEAN, &option_ibmchars,
@@ -233,11 +244,12 @@ static ARG argtab[] = {
 #endif
   {'l', BOOLEAN, &option_list,     "list all refinement names" },
   {'m', CHARACTER, &option_msg,  
-   "Messages in: g=german, e=english, else sense of humor ?" },
+   "Messages in: g=german, e=english, G,E=humorous" },
   {'n', INTEGER, &numbering_level,
    "level of numbering with #line commands" },
+  {'o', STRING,  (int*)&outputfilename,  "set output filename" },
   {'p', BOOLEAN, &option_cplusplus,"C++ mode" },
-  {'q', BOOLEAN, &option_quiet,    "quiet mode (no startup message)" },
+  {'v', BOOLEAN, &option_verbose,    "verbose mode (startup message)" },
   {'r', CHARACTER, &refinementsymbol, "refinementsymbol (character form)" },
   {'R', INTEGER, &refinementsymbol, "refinementsymbol (decimal form)" },
   {'s', BOOLEAN, &option_small,    "small compactified output" },
@@ -245,43 +257,147 @@ static ARG argtab[] = {
   {'B', INTEGER, (int*)&s_size,    "code buffer in bytes" },
   {'E', INTEGER, &maxerrors,       "max errors" },
   {'L', INTEGER, (int*)&maxline,   "max lines per function" },
+  {'M', INTEGER, (int*)&b_size,    "max length of a line" },
   {'N', INTEGER, (int*)&maxref,    "max refinements per function" },
+  {'P', INTEGER, &feedback_interval, "interval of progress display" },
   {'T', INTEGER, &tabsize,         "tab size" },
   {'W', INTEGER, &maxwarnings,     "max warnings" },
 #endif
 };
 
 
-extern int crefine (argc, argv)    /* C-REFINE */
+extern int main (argc, argv)
   int   argc;
   charp argv[];
 {
-  /* Analyses options and opens files.
-     Then calls  process_c_refine and closes files again.
-     Returns the number of errors that have been found
+  /* Analyses options and generates pairs of input/output filenames.
+     Then calls  crefine with each of these pairs.
+     Returns the number of errors that have been found totally.
   */
-  bool two_filenames_given;
-  int  wrong_options;
+  int  wrong_options, total_errors = 0;
+  int  i;
   FILE *in, *out;
+  bool explicit_outputfilename_given;
   `analysis of options;
-  if (wrong_options || argc>>1 != 1) {
+  if (wrong_options || argc <= 1) {
      print_usage (argv[0], usagestring[msg_type],
                   argtab, ARGTABSIZE (argtab));
     `startup message;
      exit (100);
   }
-  if (!option_quiet)
+  if (option_verbose)
     `startup message;
-  `open files and complain if necessary;
   `reserve memory and complain if necessary;
+  explicit_outputfilename_given = (outputfilename[0] != 0);
+  for (i = 1; i < argc; i++)
+    `generate filename pair and call crefine;
+  return (total_errors);
+
+`analysis of options:
+  option_anyway = option_indent = option_comment
+                = option_list = option_ibmchars = option_cplusplus
+                = false;
+  option_small = true;
+  numbering_level = 3;
+#if deutsch
+  option_msg  = 'd';   /* deutsche Meldungen als Standard */
+#else
+  option_msg  = 'e';   /* english warnings and errors as default */
+#endif
+  refinementsymbol = std_refinementsymbol;
+  outputfilename   = "";
+  tabsize          = 1;
+  warning_level    = 3;
+  maxline          = STD_MAXLINE;
+  maxref           = STD_MAXREF;
+  b_size           = STD_MAXLINELENGTH;
+  s_size           = STD_S_SIZE;
+  feedback_interval= 0;  /* feedback off */
+  maxerrors        = STD_MAXERRORS;
+  maxwarnings      = STD_MAXWARNINGS;
+  wrong_options = getargs (&argc, &argv, argtab, ARGTABSIZE (argtab));
+  if (option_small) {
+     tabsize = 1;
+  }
+  switch (option_msg) {
+    case 'd':
+    case 'g':  msg_type = 0;  break;
+    case 'e':  msg_type = 1;  break;
+    case 'D':
+    case 'G':  msg_type = 2;  break;
+    case 'E':  msg_type = 3;  break;
+  }
+
+`startup message:
+  fprintf (stderr, 
+           "C-Refine Precompiler   %s\n", versionstring[msg_type]);
+  fprintf (stderr, 
+           "Copyright (C) 1988-1992  Lutz Prechelt, Karlsruhe\n");
+
+`reserve memory and complain if necessary:
+  b      = malloc (b_size);
+  r      = (REFS)calloc ((maxref+1), sizeof (REF_INFO));
+  l      = (LINES)malloc ((maxline+1) * sizeof (LINE_INFO));
+  s_root = malloc (s_size);
+  if (!(b && s_root && r && l)) {
+     fprintf (stderr, Ememory[msg_type]);
+     exit (100);
+  }
+
+`generate filename pair and call crefine:
+  strcpy (name_in, argv[i]);
+  copy_with_doubled_backslashes (name_in, modified_name_in);
+  if (explicit_outputfilename_given)
+     `use explicit filename;
+  else if (!strcmp (name_in, "-"))
+     `use standard out;
+  else
+     `use input file name and strip r;
+
+`use explicit filename:
+   strcpy (name_out, outputfilename);
+   total_errors += crefine ();
+
+`use standard out:
+   strcpy (name_out, "-");
+   total_errors += crefine ();
+     
+`use input file name and strip r:
+   strcpy (name_out, argv[i]);
+   if (`filename ok) {
+     name_out[strlen(name_out)-1] = 0; /* remove 'r' from end */
+     total_errors += crefine ();
+   }
+   else {
+     fprintf (stderr, Emissing_r[msg_type], name_in);
+     total_errors++;
+   }
+
+`filename_ok:
+   name_out[strlen(name_out)-1] == 'r'
+
+}
+
+
+static int crefine ()    /* C-REFINE */
+{
+  /* Opens files name_in and name_out.
+     Then calls  process_c_refine and closes files again.
+     Returns the number of errors that have been found
+  */
+  FILE *in, *out;
+  `open files and complain if necessary;
   /* here we go: */
   rewind (in);  /* Begin at the beginning, then proceed until you come */
                 /* to the end, there stop.   (from: Alice in Wonderland) */
   process_c_refine (in, out);
-  fclose (in);
-  fclose (out);   /* Schliessen vor unlink noetig ! */
-  if (errors && !option_anyway) /* don't produce errorneous outputfiles */
-     unlink (name_out);         /* delete file */
+  if (in != stdin)
+    fclose (in);
+  if (out != stdout) {
+    fclose (out);   /* Schliessen vor unlink noetig ! */
+    if (errors && !option_anyway) /* don't produce errorneous outputfiles */
+       unlink (name_out);         /* delete file if possible */
+  }
   if (errors || warnings)
 #if deutsch
      fprintf (stderr, "%d Fehler%s   %d Warnung%s   Ausgabedatei %s\n",
@@ -299,86 +415,31 @@ extern int crefine (argc, argv)    /* C-REFINE */
 #endif
   return (errors);
 
-`analysis of options:
-  option_anyway = option_feedback = option_indent = option_comment
-                = option_list = option_ibmchars = option_cplusplus
-                = false;
-  option_small = true;
-  numbering_level = 3;
-#if deutsch
-  option_msg  = 'd';
-  msg_type    =  0;  /* deutsche Meldungen als Standard */
-#else
-  option_msg  = 'e';
-  msg_type    =  1;  /* english warnings and errors as default */
-#endif
-  refinementsymbol = std_refinementsymbol;
-  tabsize          = 1;
-  warning_level    = 3;
-  maxline          = STD_MAXLINE;
-  maxref           = STD_MAXREF;
-  b_size           = STD_MAXLINELENGTH;
-  s_size           = STD_S_SIZE;
-  maxerrors        = STD_MAXERRORS;
-  maxwarnings      = STD_MAXWARNINGS;
-  wrong_options = getargs (&argc, argv, argtab, ARGTABSIZE (argtab));
-  if (option_small) {
-     tabsize = 1;
-  }
-  if (option_msg == 'd' || option_msg == 'D' ||
-      option_msg == 'g' || option_msg == 'G')
-     msg_type = 0;
-  else if (option_msg == 'e' || option_msg == 'E')
-     msg_type = 1;
-  else
-     msg_type = 2;
-  two_filenames_given = argc == 3;
-
-`startup message:
-  fprintf (stderr, 
-           "C-Refine Precompiler   %s\n", versionstring[msg_type]);
-  fprintf (stderr, 
-           "Copyright (C) 1988,89,90,91  Lutz Prechelt, Karlsruhe\n");
-
 `open files and complain if necessary:
-  strcpy (name_in, argv[1]);            /* get */
+  if (!strcmp (name_in, "-"))
+    in = stdin;
+  else {
 #if ms_dos
   in = fopen (name_in, "rt");  /* read, translated mode */
 #else
   in = fopen (name_in, "r");  /* read */
 #endif
+  }
   if (in == NULL || ferror (in)) {
      fprintf (stderr, Eopen[msg_type], name_in);
      exit (100);
   }
-  copy_with_doubled_backslashes (name_in, modified_name_in);
-  if (two_filenames_given) {            /* if second name given */
-     strcpy (name_out, argv[2]);        /* take it as it is */
-  }
-  else {                                /* else */
-     strcpy (name_out, argv[1]);        /* take first name */
-     if (name_out[strlen(name_out)-1] == 'r')
-       name_out[strlen(name_out)-1] = 0; /* remove 'r' from end */
-     else
-       strcat (name_out, "RRR");         /* or append 'RRR' */
-  }
+  if (!strcmp (name_out, "-"))
+    out = stdout;
+  else {
 #if ms_dos
   out = fopen (name_out, "wt");  /* write, translated mode */
 #else
   out = fopen (name_out, "w");  /* write */
 #endif
+  }
   if (out == NULL || ferror (out)) {
      fprintf (stderr, Eopen[msg_type], name_out);
-     exit (100);
-  }
-
-`reserve memory and complain if necessary:
-  b      = malloc (b_size);
-  r      = (REFS)calloc ((maxref+1), sizeof (REF_INFO));
-  l      = (LINES)malloc ((maxline+1) * sizeof (LINE_INFO));
-  s_root = malloc (s_size);
-  if (!(b && s_root && r && l)) {
-     fprintf (stderr, Ememory[msg_type]);
      exit (100);
   }
 
@@ -398,24 +459,30 @@ static void process_c_refine (in, out)
      s, l, r and the option indicators.
   */
   commanded_line_no = line_no = 0;
+  errors = warnings = 0;
+  stop_processing = error_in_this_function = false;
   reset_l_r_s ();
+  init_scanner ();
   if (numbering_level > 0)
     /* we get a linefeed anyway! */
     fprintf (out, "#line 1 \"%s\"", modified_name_in);
   while (!stop_processing)
      `handle next line;
-  if (option_feedback)
+  if (feedback_interval)
      cout (line_no);
-  free (s_root);
 
 `handle next line:
      int semicolons = 0;
-     if (option_feedback && line_no % FEEDBACK_INTERVAL == 0)
+     if (feedback_interval && line_no % feedback_interval == 0)
         cout (line_no);
      if (ferror (in))
         fatal_error (Ereadinput, l[l_pos-1].start, line_no);
      if (ferror (out))
         fatal_error (Ewriteoutput, NULL, line_no);
+#undef  test_
+#ifdef test_
+  usleep (5000);
+#endif
      get_line (in, l+l_pos, &semicolons);
      process_line (out, semicolons);
 }
@@ -451,7 +518,7 @@ static void process_line (out, semicolons)
       `function has begun;
 
 `remains on level 0 so just copy it:
-   if (l[0].type != normal && l[0].type != empty)
+   if (l[0].type != normal_line && l[0].type != empty_line)
       error (Elevel0_ref, l[0].start, line_no);
    put_line (out, &l[0], 0, 1);
    reset_l_r_s ();
@@ -459,7 +526,7 @@ static void process_line (out, semicolons)
 `function has begun:
    error_in_this_function = false;
    old_level = l[0].level;    /* neuen Level merken */
-   if (l[0].type == refdecl && r_pos < maxref) {  /* empty function */
+   if (l[0].type == refdecl_line && r_pos < maxref) {  /* empty function */
       r[r_pos].name         = l[0].start;
       r[r_pos].firstentry   = 0;
       r[r_pos].active       = false;
@@ -482,7 +549,7 @@ static void process_line (out, semicolons)
    reset_l_r_s ();
 
 `and still keep being in:
-   if (l[l_pos].type == refdecl && r_pos < maxref) {
+   if (l[l_pos].type == refdecl_line && r_pos < maxref) {
       r[r_pos].name         = l[l_pos].start;   /* enter Refinement */
       r[r_pos].active       = false;
       r[r_pos].firstentry   = l_pos;
@@ -518,21 +585,21 @@ static void insert_refinements (out)
   `find last line to insert;
   for (i = 0; i <= end; i++) {  /* lines up to first ref. declaration */
       switch (l[i].type) {
-         case refcall  :
-         case refcallr :
+         case refcall_line  :
+         case refcallr_line :
                 `insert refinement;
                 break;
-         case leave    :
+         case leave_line    :
                 `whatshallthatbe;
                 break;
-         case normal   :
+         case normal_line   :
                 `insert normal line;
                 break;
-         case empty    :
+         case empty_line    :
                 putc ('\n', out);
                 commanded_line_no++;
                 break;
-         case refdecl  :
+         case refdecl_line  :
          default       :
                  assert (false);
       }
@@ -544,12 +611,12 @@ static void insert_refinements (out)
   if (option_list && r_pos > 0) {
      fputc ('\n', stdout);
      for (i = 0; i < r_pos; i++)
-         fprintf (stdout, "(%d) %s\n", refdecl_line (i), r[i].name);
+         fprintf (stdout, "(%d) %s\n", refdecl_line_nr (i), r[i].name);
   }
 
 `find last line to insert:
   end = r[0].firstentry - 1;
-  while (l[end].type == empty)   /* suppress trailing empty lines */
+  while (l[end].type == empty_line)   /* suppress trailing empty lines */
      end--;
 
 `insert refinement:
@@ -567,13 +634,13 @@ static void insert_refinements (out)
   for (i = 0; i < r_pos; i++)
       if (r[i].semicolons > 50)
          warning (Wlong_ref, l[r[i].firstentry].start,
-                  refdecl_line (i), 3);
+                  refdecl_line_nr (i), 3);
       else if (r[i].calls > 5 && r[i].semicolons > 2)
          warning (Wref_often_used, l[r[i].firstentry].start,
-                  refdecl_line (i), 3);
+                  refdecl_line_nr (i), 3);
       else if (r[i].calls == 0)
          warning (Wref_unused, l[r[i].firstentry].start,
-                  refdecl_line (i), 1);
+                  refdecl_line_nr (i), 1);
 }
 
 /************************* insert_refinement ******************************/
@@ -616,11 +683,11 @@ static void insert_refinement (out, z, startindent, recursive_level)
      r[nr].leave_it = false;
   }
   end = r[nr+1].firstentry - 1;
-  while (l[end].type == empty)   /* suppress trailing empty lines */
+  while (l[end].type == empty_line)   /* suppress trailing empty lines */
      end--;
   i = r[nr].firstentry + 1;
   if (i > end)
-     warning (Wref_empty, l[r[nr].firstentry].start, refdecl_line (nr), 2);
+     warning (Wref_empty, l[r[nr].firstentry].start, refdecl_line_nr (nr), 2);
   else
      `insert the refinement;
   r[nr].active = false;
@@ -637,21 +704,21 @@ static void insert_refinement (out, z, startindent, recursive_level)
   ref_startindent = l[i].indent;
   for ( ; i <= end; i++) {
       switch (l[i].type) {
-         case refcall  :
-         case refcallr :
+         case refcall_line  :
+         case refcallr_line :
                 `insert refinement;
                 break;
-         case leave    :
+         case leave_line    :
                 `insert goto statement;
                 break;
-         case normal   :
+         case normal_line   :
                 `insert normal line;
                 break;
-         case empty    :
+         case empty_line    :
                 putc ('\n', out);
                 commanded_line_no++;
                 break;
-         case refdecl  :
+         case refdecl_line  :
          default       :
                  assert (false);
       }
@@ -705,7 +772,7 @@ static void insert_refinement (out, z, startindent, recursive_level)
   }
   else {
      putc (')', out);
-     if (z->type == refcallr)  /* semicolon has been removed illegaly */
+     if (z->type == refcallr_line)  /* semicolon has been removed illegaly */
         putc (';', out);
   }
 
@@ -764,7 +831,7 @@ static void put_line (out, line, additional_indent, min_level)
   if (line->line_no != commanded_line_no + 1)
      line_cmd (out, line->line_no, line->indent + additional_indent,
                min_level);
-  if (line->type == empty) {    /* for empty lines: nothing */
+  if (line->type == empty_line) {    /* for empty lines: nothing */
      putc ('\n', out);
      commanded_line_no++;
      return;
@@ -801,13 +868,13 @@ static int refinement_nr (name)
          matches++;
       }
   if (matches > 1)
-     error (Eref_multi_decl, r[match].name, refdecl_line (match));
+     error (Eref_multi_decl, r[match].name, refdecl_line_nr (match));
   return (match);
 }
 
 /********************* Auxiliary functions ******************************/
 
-static void copy_with_doubled_backslashes (string, copy)
+extern void copy_with_doubled_backslashes (string, copy)
   char *string, *copy;
 {
   /* copies the string string to the location copy. All backslash
@@ -831,25 +898,6 @@ static void copy_with_doubled_backslashes (string, copy)
        copy++;               /* proceed one byte */
   }
   *copy = 0;
-}
-
-
-static void do_expire (day, month, year)
-  int day, month, year;
-{
-  long act_time;
-  struct tm *t;
-  time (&act_time);
-  t = localtime (&act_time);
-  month--;   /* localtime uses months 0 - 11 ! */
-  if (`has expired) {
-     fprintf (stderr, "\n%s\n\n", Thas_expired[msg_type]);
-     exit (100);
-  }
-
-`has expired :
-  t->tm_year > year || (t->tm_year == year && t->tm_mon > month) ||
-  (t->tm_year == year && t->tm_mon == month && t->tm_mday > day)
 }
 
 

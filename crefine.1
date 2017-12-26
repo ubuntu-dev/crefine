@@ -1,4 +1,4 @@
-.TH CREFINE 1 "22 August 1991"
+.TH CREFINE 1 "12 June 1992"
 .SH NAME
 crefine \- refinement preprocessor for C and C++
 .SH SYNOPSIS
@@ -6,43 +6,37 @@ crefine \- refinement preprocessor for C and C++
 [
 .B options
 ]
-.I inputfile
-[
-.I outputfile
-]
+.I inputfile ...
 .SH DESCRIPTION
 .B crefine (C-Refine)
 (spoken like 'see refine') is a preprocessor that adds a new language
 construct to C and C++: the 
 .I refinement.
-crefine massages a source code file to produce plain C output from
-C input with refinements or plain C++ from C++ with refinements.
+crefine massages source code files to produce plain C output from
+C input with refinements or plain C++ from C++ with refinements and so on.
 The syntax of refinements is described in the USAGE section.
-Only a single source file may be processed with one call; the name of the
-output file, if not given, is derived from the name of the input file
-by removing its last 
+The name of the
+output file, if not given explicitly with option -o,
+is derived from the name of the input file by removing its last
 character, if that is an 
 .B r
 (which is the filename convention for C\-Refine).
-If the last character of
-the input filename is not an 
-.B r
-, the output filename is derived from it
-by appending
-.B RRR
-instead.
-Input and output is always to and from named
-files. Error messages go to the standard output. The startup message,
+Stdin and stdout can be referenced as '-'
+Error messages go to the standard output. The startup message,
 if not suppressed, goes to standard error.
 
 C\-Refine does not act in any way upon the directives for the
-C preprocessor. This especially means that include files have to be 
+C preprocessor (except #line). 
+This especially means that include files have to be 
 processed separately. Usually, this will not be necessary, since they do
 not typically contain anything that C\-Refine should work on.
 A second consequence is, that it is possible for C\-Refine to give error
 messages on correct programs, because it does not see the effects of 
 running the preprocessor. In these cases you either have to change your 
-source code or run the C preprocessor before C\-Refine.
+source code or run the C preprocessor before C\-Refine. In the latter case, 
+C\-Refine will correctly process the #line directives that the
+preprocessor inserts into your code in its output and thus give you
+messages with the correct line numbers.
 .SH OPTIONS
 .TP
 .B \-a
@@ -51,13 +45,8 @@ will automatically be deleted. This option says not to do so.
 .TP
 .B \-c
 comment refinement names in the output. Any inserted 
-refiement body in the output is titled by a comment giving the refinement
+refinement body in the output is titled by a comment giving the refinement
 name and the refinement nesting level.
-.TP
-.B \-f
-feedback that you work. For the homo ludens in the programmer or people
-with incredibly overloaded machines. Shows running line numbers on standard
-error.
 .TP
 .B \-i
 indent the 
@@ -80,18 +69,10 @@ programmer in the typical german programmer schizophrenia situation:
 as a german the native tongue is german,
 as a programmer the native tongue is
 english. So both languages were supported for the error messages.
+Use -mg for German and -me for English (which is the default).
 Even worse, since I believe the whole data processing world is much too
-serious, I liked to have a humourous version either. So now any of the 
-characters 
-.B d,D,g,G
-immediately after the option character m gives you
-german error and warning messages, 
-.B e
-or
-.B E
-gives english ones (which, 
-for sake of internationality, is the default) and every other letter lets
-you stick to (german) humor.
+serious, I liked to have a somewhat humorous version either.
+Use -mG for german humorous messages, and -mE for english humorous messages.
 .TP
 .B \-n<num>
 numbering with
@@ -108,6 +89,11 @@ reduced (level 2 or 1) or set to zero (level 0). What is best depends on
 the behavior of your local C or C++ compiler.
 Just try it out, beginning with the default level 3.
 .TP
+.B \-o<string>
+set name of output file explicitly. Normally, the name of the output file
+is the name of the input file with an 'r' stripped off of the end (and 
+stdout when input is stdin). This can be overridden with this option.
+.TP
 .B \-p
 plus. The C++ mode. The only difference between C mode and C++ mode for
 C\-Refine is, that in C++ mode the C++ doubleslash comment convention is
@@ -115,13 +101,13 @@ obeyed, while in C mode it is not. This is possible because C\-Refine knows
 very little about the actual syntax of these two languages.
 So in most cases, this difference makes no difference at all.
 .TP
-.B \-q
-quiet mode. Suppresses the startup message of C\-Refine.
+.B \-v
+verbose mode. Makes C\-Refine display a startup message.
 .TP
 .B \-r<ch>
 refinement symbol. Select what character shall be recognized as the 
 refinement symbol in the input file. The character to chose must be given
-on the command line immediately after the option character
+on the command line after the option character
 .B r.
 This is the
 backquote (ASCII code 95) by default. Since there are only two printable
@@ -135,6 +121,7 @@ as the IBM international character set (proposed symbol there is the
 little double right angle bracket, code 175, which really looks nice),
 but take into account that any change in refinement symbol is bad
 for the portability of your source files.
+Note that some characters have to be quoted in the shell.
 .TP
 .B \-R<num>
 refinement symbol. Same as before, but the new symbol is given by its
@@ -150,12 +137,12 @@ This is on by default. To switch it off, use the syntax
 warning level. C\-Refine is able to give various warnings about your
 source code. These can be suppressed in three stages. The default warning
 level is 3 (all warnings). You can chose any level from 0 (no warnings)
-to 3 by giving the appropriate number right after the option character
+to 3 by giving the appropriate number after the option character
 .B w
 on the command line.
 .TP
 .B \-B<num>
-buffer. Select the size of the source code buffer
+buffer. Select the size of the source code buffer (in bytes)
 in which C\-Refine holds the
 code for a function while processing it. The default is 150000 bytes.
 .TP
@@ -167,11 +154,22 @@ before C\-Refine stops processing prematurely. The default is 20.
 lines. Select the maximum number of source code lines per single function
 that C\-Refine is able to hold. The default is 2500. 
 .TP
+.B \-M<num>
+maximum number of characters per line.
+The default is 500.
+.TP
 .B \-N<num>
 number of refinements per function.
 Selects the maximum number of refinement
 declarations that may be present within any single function. 
 The default is 200.
+.TP
+.B \-P<num>
+interval of progress display. For the homo ludens in the programmer or people
+with incredibly overloaded machines.
+After every <num> lines of processing C\-Refine echoes the current
+line number to stdout.
+The default is 0, which means that this function is suppressed.
 .TP
 .B \-T<num>
 tab size. Select the number of spaces to which a TAB character expands.
@@ -181,6 +179,12 @@ that act as indentation. Other TABs are left untouched. The default is 1.
 .B \-W<num>
 warnings. Select the maximum number of warnings that may occur
 before C\-Refine stops processing prematurely. The default is 30.
+.TP
+.B \-\-
+indicate 'end of options'. You may use a dash as the input filename
+(to use C\-Refine as a filter from standard input to standard output),
+but it can be recognized only after you have used a double dash to
+indicate that it is not an option.
 .SH USAGE
 There are three new syntactic elements with C\-Refine:
 the refinement definition, the refinement call and the leave construct.
@@ -202,7 +206,7 @@ for the program text being defined. This is necessary, because (a) the
 syntax of the refinement constructs breaks basic syntactic rules of C and
 (b) the C\-Refine preprocessor relies on some simple formatting rules, so
 its algorithms can be kept simple and the whole thing small, portable,
-robust, reliable and fast.
+robust, reliable, and fast.
 
 Here are the (very informal) descriptions of the syntax and semantics of
 the language elements introduced by C\-Refine:
@@ -356,7 +360,7 @@ To make the self documentation aspect of C\-Refine more clear, look at
 the following example: A function that tests, whether its parameters
 form a pythagorean triple:
 .nf
-bool pythagorean (double x, double y, double z)
+bool pythagorean (int x, int y, int z)
 {
   return (`all legs positive && `one is hypotenuse)
   
@@ -384,7 +388,7 @@ in a single parenthesesed expression.
 .SH FILES
 .PD 0
 .TP 18
-bin/crefine
+crefine
 the executable program
 .TP
 filename.cr
@@ -398,25 +402,21 @@ C++\-with\-refinements input file.
 .TP
 filename.cc
 C++ output file.
-.TP
-otherfileRRR
-output file from input file
-.I otherfile
 .PD
 .SH EXAMPLES
 .TP
 crefine firsttest.cr
 process the input file firsttest.cr producing the output file firsttest.c
 .TP
-crefine -p+ -q+ -w2 next.ccr outfile
-process the C++ inputfile next.ccr producing the output file outfile.
+crefine -p+ -q+ -o outfile -w 2 next.ccr
+process the C++\-Refine inputfile next.ccr producing the output file outfile.
 The startup message is suppressed, C++ mode is selected and the 
 warning level is reduced to 2.
 .TP
-crefine -pqw2 next.ccr outfile
+crefine -pqw2 -ooutfile next.ccr
 same as before.
 .TP
-crefine -p+a-l-qw2 next.ccr outfile
+crefine -o outfile -p+a-l-qw2 next.ccr
 same as before.
 .TP
 crefine -c -s- -n0 -T8 last.cr
@@ -439,7 +439,7 @@ try again.
 cc(1), cpp(1), make(1)
 .SH BUGS
 Since preprocessor directives are not handled by C\-Refine, strange things 
-can happen if you use #ifdef or #if. This is especially the case, if you
+can happen if you use #ifdef or #if. This is especially the case if you
 use these directives to put large comments into your source files: if there
 are any comments or string literals (double quotes) or char 
 literals (single quotes) beginning in that area that are not properly 
@@ -447,58 +447,68 @@ closed within it, C\-Refine will run to nirvana searching for their end and
 give you lots of wrong error and warning messages.
 Watch out for apostrophes (e.g. in "don't") especially!
 .LP
-C\-Refine should be able to act according to #line commands, so that 
-the above problems could be avoided by running the preprocessor first.
-.LP
 Those people, who use such stupid macros as
 .nf
    #define BEGIN {
    #define END   }
 .fi
-or similar craizy stuff, will have to change their habits in order
-to use C\-Refine.
+or similar craizy stuff, will have to change their habits or run the 
+preprocessor first in order to use C\-Refine.
+.LP
+When using a call to a value returning refinement as a parameter
+to a macro, most preprocessors will complain the #line directive 
+when numbering level 3 is being used. -n2 or -n1 can be used to
+overcome this problem although this may be a bit unsatisfactory.
 .LP
 The output of C\-Refine may be code that exceeds certain compiler limits of
 your C or C++ compiler. Since the body of every procedural refinement is
 enclosed in a block and the body of every value returning refinement is
-enclosed in parentheses, the block nexting limits or expression complexity 
+enclosed in parentheses, the block nesting limits or expression complexity 
 limits of your compiler may be reached when you make very heavy use of
 nested refinements.
 .LP
 Some compilers may handle the #line directive improperly, yielding wrongly
-tagged error messages.
+tagged error messages. Bad luck.
 .LP
 Probably C\-Refine will also work with Objective\-C,
-but I am not absolutely sure about that.
+but I am not absolutely sure about that. Perhaps somebody will give 
+me some feedback on this issue ?
 .LP
 There should be a mode to use C\-Refine for Lisp also.
 .LP
+And for several other languages, too.
+.LP
 C\-Refine reacts poor on some types of syntactic errors.
 .LP
-It should optionally be possible to let C\-Refine run the 
-C preprocessor and react correctly to 
-.I #line
-directives.
+C-Refine will not work good if your filenames contain certain strange
+characters (e.g. double quotes).
 .LP
 In C++, when a "leave" has to jump across a variable initialization, some 
-Compilers will complain, that the goto is illegal. This is not true, 
+compilers will complain, that the goto is illegal. This is not true, 
 because the goto jumps to (or even beyond) the very end of the block 
 where that variable is in
 [precisely: the jump is to an empty statement, which is the last statement
 in the block], but these compilers do not recognize that fact.
-.SH VERSION
-This is for C\-Refine Version 2.4
 .LP
-It is likely that the command syntax be changed in the next version in the
-following way: multiple filenames can be given, all of which 
-.I must
-end with an 'r'. The output filename is constructed implicitly by 
-removing that 'r' from the inputfilename. So you better do not use output
-file names in your makefiles.
+You must have C\-Refine in order to be able to use refinements.
+This is actually not a bug in C\-Refine but in your compiler.
+.LP
+Although much easier than without, programming is still difficult
+even with C\-Refine.
+This is a bug in you. Contact darwin@nirvana.edu or 
+root@headquarter.heaven.gov for complaints.
+.LP
+There is a front-end for C\-Refine called 'ccr', which works just
+like 'cc' except that it allows to compile C\-Refine sources also, but
+there is no manpage for that.
+.SH VERSION
+This manpage is for C\-Refine Version 3.0 (internally named Version 17)
 .SH AUTHOR
-Lutz Prechelt, 
-Institut fuer Programmstrukturen und Datenorganisation,
-Universitaet Karlsruhe,
-D-7500 Karlsruhe,
-Germany.
-(prechelt@ira.uka.de)
+.nf
+Lutz Prechelt  (prechelt@ira.uka.de)
+Institut fuer Programmstrukturen und Datenorganisation
+Universitaet Karlsruhe
+D-7500 Karlsruhe
+Germany
+
+.fi

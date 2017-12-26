@@ -1,20 +1,5 @@
-/*
-    Copyright (C) 1987-1991 by Lutz Prechelt, Karlsruhe
 
-    This program is free software; you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation; either version 1, or (at your option)
-    any later version.
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
-    You should have received a copy of the GNU General Public License
-    along with this program; if not, write to the Free Software
-    Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
-*/
-
->>>>> This is README for C-Refine Version 2.4 <<<<<
+>>>>> This is README for C-Refine Version 3.0 <<<<<
 
 C-Refine is a preprocessor for programs written in C or C++ or a similar 
 language. It introduces an additional language construct called 'refinement'
@@ -22,60 +7,91 @@ which allows further decomposition with symbolic names inside functions.
 This makes programs much easier to read and modify and is very comfortable
 for programming.
 
-The system consists of a single executable file (crefine) and one
-Unix Manualpage (crefine.1). No further data files or libraries 
-except the standard C library are needed.
+We also call these extended languages C-Refine (or C++-Refine, and so on).
+The C-Refine preprocessor converts program written in C-Refine into plain C, 
+and programs written in C++-Refine into normal C++, and programs 
+written in Objective-C-Refine into normal Objective-C, and so on.
+The preprocessor is much faster than a C compiler, so it will not
+unbearably slow down the overall compilation process.
+
+The installed system consists of a single executable file (crefine) and one
+Unix Manualpage (crefine.1). An additional driver shell script (ccr) plus
+Manualpage are also provided.
+No further data files or libraries except the standard C library are needed.
 
 ------------------------------------------------------------------------------
+
+Portability:
+------------
+C-Refine is completely portable to all machines that have a standard 
+C library. 
+It should readily compile at least on all ANSI-C machines, all
+standard BSD-Unix machines and standard System V machines.
+
+If #include <strings.h> fails, change it to #include <string.h>
+If #include <string.h>  fails, change it to #include <strings.h>
+
+------------------------------------------------------------------------------
+
+Compilation:
+------------
+
+Usually, no changes in the Makefile are required.
 
 To generate C-Refine (which is bootstrapped, i.e. written in C-Refine)
 you must first compile the preprocessed version of the files.
 
 This is done with the command
-  make crefine_from_c
-which always compiles and links all 4 parts.
+  make crefine
+which should compile from the *.c files.
+If this doesn't work, please issue a 
+  touch *.c
+and try again.
+The *.c files have to be newer than the *.cr files or else make will try
+to call crefine to transform *.cr files into *.c files, which of course
+is not possible for you in the beginning, if you don't already have crefine.
 
 If you have a working version of C-Refine you can bootstrap it via
-  make crefine
+  make completely_clean crefine
 
-The makefile also mentions a rule for translating in one step from
-C-Refine to .o
+What you see then is no error: C-Refine works extremely fast; you will
+hardly notice the time it takes for running crefine before the compiler is
+started on each source file.
 
-------------------------------------------------------------------------------
-
-If you have gotten C-Refine to work on a machine not mentioned below,
-please send me (prechelt@ira.uka.de) a short note of the form:
-
-   Subject: got C-Refine working
-   I got C-Refine 2.4 to work without problems on the following machine
-   <name-of-computer> <name-and-version-of-operating-system>
-   
-(...or describe why C-Refine didn't compile and perhaps send me a minimal
-diff to get it to work.)
+The Makefile is a bit simple-minded.
 
 ------------------------------------------------------------------------------
 
-Environments where C-Refine already works:
+Environments where C-Refine already once worked:
 
-(CF is the certainty factor with the following meaning:
- 1: compiles  (I have checked that)
- 2: most probably compiles (but I don't have machine at hand to check again)
- 3: probably compiles (it once did, but changes may have reversed this)
- 4: should compile (have done my best from what I know about that system)
- 5: may compile (a bit doubtful)
-)
- 
-CF  Machine            Operating System (and perhaps Compiler)
-
-1   DECstation 3100    Ultrix 4.1
-3   IBM PC etc.        MS-DOS 3.2 (Microsoft C 5.0)
-3   PCS (type???)      (some System V)
-2   Sun3               SUN-OS 3.5
-1   Sun3,Sun4          SUN-OS 4.03
-1   Sun3,Sun4          SUN-OS 4.1
-1   VAXstation 3250    Ultrix-32 V3.1
+Machine            Operating System (and perhaps Compiler)
+-------            ---------------------------------------
+Apollo DN3xxx      DOMAIN/OS SR10.3 BSD (ANSI C 6.8)
+Apollo series 400  DOMAIN/OS SR10.3 BSD (ANSI C 6.8)
+Atari ST           OS-9/68000 V2.3
+AT/386             ISC Unix 3.2.2 (GNU C 1.39)
+AT/386             SCO Unix 3.2.2 (cc or GNU C 1.40 without optimization)
+AT&T 3B2           System V
+Commodore Amiga    AmigaOS 1.3 (DICE 2.06.33)
+Convex C2          Convex OS
+DECstation 3100    Ultrix 4.1
+DG Aviion 4620     System V r4.1
+Next 68040         NextStep 2.0
+Opus System PM-417 System V r3.2
+PC etc.            MS-DOS 3.2 (Microsoft C 5.0)
+PC etc.            OS/2 Vers. 1.3 (Microsoft C 6.0)
+PCS (type???)      some System V
+Sequent Symmetry   DYNIX 3.1.4
+Sun3               SUN-OS 3.5
+Sun3,Sun4          SUN-OS 4.03
+Sun3,Sun4          SUN-OS 4.1
+VAXstation 3250    Ultrix-32 V3.1
 
 ------------------------------------------------------------------------------
 
-The Makefile will not work with some prehistoric versions of "make".
-In this case I strongly suggest that you get a newer make, e.g. GNU-Make.
+C-Refine was designed and implemented by 
+  Lutz Prechelt, Universitaet Karlsruhe, Germany
+  prechelt@ira.uka.de
+
+C-Refine is distributed under the GNU general public licence ("Copyleft").
+See the file COPYING for details.

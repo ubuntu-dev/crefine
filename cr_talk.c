@@ -3,8 +3,8 @@
 Project : C-Refine Precompiler
 Module  : Output functions for messages
 Author  : Lutz Prechelt, Karlsruhe
-Date    : 11.06.91  Version 16
-Compiler: ANSI C, C-Refine
+Date    : 08.05.92  Version 17
+Compiler: C, C-Refine
 **************************************************************************/
 /*
     Copyright (C) 1988,89,90,91 by Lutz Prechelt, Karlsruhe
@@ -27,7 +27,6 @@ Compiler: ANSI C, C-Refine
 *************************************************************************/
 
 #include <stdio.h>
-#include <string.h>
 
 #include "cr_decl.h"   /* global Functions, Types and Data */
 #include "cr_texts.h"  /* message texts */

@@ -9,34 +9,35 @@ NAME
      crefine - refinement preprocessor for C and C++
 
 SYNOPSIS
-     crefine [ options ] inputfile [ outputfile ]
+     crefine [ options ] inputfile ...
 
 DESCRIPTION
      crefine (C-Refine) (spoken like 'see refine') is  a  prepro-
      cessor  that adds a new language construct to C and C++: the
-     refinement. crefine massages a source code file  to  produce
+     refinement. crefine massages source code  files  to  produce
      plain  C  output  from C input with refinements or plain C++
-     from C++ with refinements.  The  syntax  of  refinements  is
-     described  in  the USAGE section.  Only a single source file
-     may be processed with one call; the name of the output file,
-     if  not given, is derived from the name of the input file by
-     removing its last character, if that is an r (which  is  the
-     filename convention for C-Refine).  If the last character of
-     the input filename is not an r  ,  the  output  filename  is
-     derived  from it by appending RRR instead.  Input and output
-     is always to and from named files. Error messages go to  the
-     standard  output.  The  startup  message, if not suppressed,
-     goes to standard error.
+     from C++ with refinements and so on.  The syntax of  refine-
+     ments  is  described  in the USAGE section.  The name of the
+     output file, if not given  explicitly  with  option  -o,  is
+     derived from the name of the input file by removing its last
+     character, if that is an r (which is the filename convention
+     for  C-Refine).   Stdin  and stdout can be referenced as '-'
+     Error messages go to the standard output. The  startup  mes-
+     sage, if not suppressed, goes to standard error.
 
      C-Refine does not act in any way upon the directives for the
-     C  preprocessor.  This  especially  means that include files
-     have to be processed separately. Usually, this will  not  be
-     necessary, since they do not typically contain anything that
-     C-Refine should work on.  A second consequence is,  that  it
-     is  possible  for C-Refine to give error messages on correct
-     programs, because it does not see the effects of running the
-     preprocessor.  In these cases you either have to change your
-     source code or run the C preprocessor before C-Refine.
+     C  preprocessor  (except  #line). This especially means that
+     include files have to be processed separately. Usually, this
+     will  not  be necessary, since they do not typically contain
+     anything that C-Refine should work on.  A second consequence
+     is,  that it is possible for C-Refine to give error messages
+     on correct programs, because it does not see the effects  of
+     running  the preprocessor. In these cases you either have to
+     change your source code or run  the  C  preprocessor  before
+     C-Refine.  In  the latter case, C-Refine will correctly pro-
+     cess the #line directives that the preprocessor inserts into
+     your  code in its output and thus give you messages with the
+     correct line numbers.
 
 OPTIONS
      -a   anyway.  Normally,  if  any  error  was   detected   by
@@ -44,13 +45,9 @@ OPTIONS
           deleted. This option says not to do so.
 
      -c   comment refinement names in the  output.  Any  inserted
-          refiement  body  in  the  output is titled by a comment
+          refinement  body  in  the output is titled by a comment
           giving the refinement name and the  refinement  nesting
           level.
-
-     -f   feedback that you work. For the homo ludens in the pro-
-          grammer  or people with incredibly overloaded machines.
-          Shows running line numbers on standard error.
 
      -i   indent the #line directives in the resulting output  to
           the  appropriate  indentation level as indicated by the
@@ -58,9 +55,12 @@ OPTIONS
           option,  but  since  this is a true UNIX program, it is
           present anyway.
 
+     -l   list all refinement names.  The names of all  processed
+          refinements  are  listed  to  the standard output along
 
 
-Sun Release 4.1    Last change: 22 August 1991                  1
+
+Sun Release 4.1     Last change: 12 June 1992                   1
 
 
 
@@ -71,8 +71,6 @@ CREFINE(1)               USER COMMANDS                 CREFINE(1)
 
 
 
-     -l   list all refinement names.  The names of all  processed
-          refinements  are  listed  to  the standard output along
           with their line numbers. I do  not  know  exactly  what
           this  option  may  be  good  for, but I believe someday
           somebody will need it.
@@ -83,14 +81,12 @@ CREFINE(1)               USER COMMANDS                 CREFINE(1)
           grammer schizophrenia situation: as a german the native
           tongue  is german, as a programmer the native tongue is
           english. So both languages were supported for the error
-          messages.   Even  worse, since I believe the whole data
-          processing world is much too serious, I liked to have a
-          humourous  version either. So now any of the characters
-          d,D,g,G immediately after the option character m  gives
-          you  german  error  and  warning messages, e or E gives
-          english ones (which, for sake of  internationality,  is
-          the  default)  and every other letter lets you stick to
-          (german) humor.
+          messages.   Use  -mg  for  German  and  -me for English
+          (which is the default).  Even worse,  since  I  believe
+          the  whole data processing world is much too serious, I
+          liked to have a somewhat humorous version either.   Use
+          -mG  for  german humorous messages, and -mE for english
+          humorous messages.
 
      -n<num>
           numbering with #line commands. By default, every inser-
@@ -103,6 +99,12 @@ CREFINE(1)               USER COMMANDS                 CREFINE(1)
           your  local C or C++ compiler.  Just try it out, begin-
           ning with the default level 3.
 
+     -o<string>
+          set name of output file explicitly. Normally, the  name
+          of  the  output file is the name of the input file with
+          an 'r' stripped off of the end (and stdout  when  input
+          is stdin). This can be overridden with this option.
+
      -p   plus. The C++ mode. The only difference between C  mode
           and  C++ mode for C-Refine is, that in C++ mode the C++
           doubleslash comment convention is obeyed,  while  in  C
@@ -111,22 +113,20 @@ CREFINE(1)               USER COMMANDS                 CREFINE(1)
           languages.   So in most cases, this difference makes no
           difference at all.
 
-     -q   quiet mode. Suppresses the startup message of C-Refine.
+     -v   verbose mode. Makes C-Refine display a startup message.
 
      -r<ch>
           refinement  symbol.  Select  what  character  shall  be
           recognized  as the refinement symbol in the input file.
           The character to chose must be  given  on  the  command
-          line  immediately after the option character r. This is
-          the backquote (ASCII code 95) by default.  Since  there
-          are only two printable ASCII characters that are unused
-          in the syntax of C (the backquote,  code  96,  and  the
-          dollar  or currency sign, code 36) there is very little
-          choice on a machine with  7  bit  character  set.  This
+          line   after  the  option  character  r.  This  is  the
+          backquote (ASCII code 95) by default. Since  there  are
+          only  two printable ASCII characters that are unused in
+          the syntax of C (the backquote, code 96, and the dollar
 
 
 
-Sun Release 4.1    Last change: 22 August 1991                  2
+Sun Release 4.1     Last change: 12 June 1992                   2
 
 
 
@@ -137,15 +137,18 @@ CREFINE(1)               USER COMMANDS                 CREFINE(1)
 
 
 
-          choice  is  further  restricted because on some systems
-          (such as VMS) the dollar sign is acutally being allowed
-          and  used  for  identifiers.   Some more possiblilities
-          arise when having an 8 bit character set, such  as  the
-          IBM  international character set (proposed symbol there
-          is the little double right  angle  bracket,  code  175,
-          which  really  looks  nice), but take into account that
-          any change in refinement symbol is bad for  the  porta-
-          bility of your source files.
+          or  currency sign, code 36) there is very little choice
+          on a machine with 7 bit character set. This  choice  is
+          further  restricted  because  on  some systems (such as
+          VMS) the dollar sign is acutally being allowed and used
+          for  identifiers.   Some more possiblilities arise when
+          having an 8 bit character set, such as the IBM interna-
+          tional character set (proposed symbol there is the lit-
+          tle double right angle bracket, code 175, which  really
+          looks  nice),  but take into account that any change in
+          refinement symbol is bad for the  portability  of  your
+          source  files.   Note  that  some characters have to be
+          quoted in the shell.
 
      -R<num>
           refinement symbol. Same as before, but the  new  symbol
@@ -161,13 +164,13 @@ CREFINE(1)               USER COMMANDS                 CREFINE(1)
           ings about your source code. These can be suppressed in
           three stages. The default warning level is 3 (all warn-
           ings).  You can chose any level from 0 (no warnings) to
-          3 by giving the  appropriate  number  right  after  the
-          option character w on the command line.
+          3 by giving the appropriate  number  after  the  option
+          character w on the command line.
 
      -B<num>
-          buffer. Select the size of the source  code  buffer  in
-          which C-Refine holds the code for a function while pro-
-          cessing it. The default is 150000 bytes.
+          buffer. Select the size of the source code  buffer  (in
+          bytes)  in which C-Refine holds the code for a function
+          while processing it. The default is 150000 bytes.
 
      -E<num>
           errors. Select the maximum number of  errors  that  may
@@ -179,20 +182,17 @@ CREFINE(1)               USER COMMANDS                 CREFINE(1)
           per  single function that C-Refine is able to hold. The
           default is 2500.
 
+     -M<num>
+          maximum number of characters per line.  The default  is
+          500.
+
      -N<num>
           number of refinements per function.  Selects  the  max-
           imum  number  of  refinement  declarations  that may be
-          present within any single function. The default is 200.
-
-     -T<num>
-          tab size. Select the number of spaces to  which  a  TAB
-          character expands.  C-Refine expands all TAB characters
-          at the beginning of a line,  i.e.  those  that  act  as
-          indentation. Other TABs are left untouched. The default
 
 
 
-Sun Release 4.1    Last change: 22 August 1991                  3
+Sun Release 4.1     Last change: 12 June 1992                   3
 
 
 
@@ -203,12 +203,33 @@ CREFINE(1)               USER COMMANDS                 CREFINE(1)
 
 
 
+          present within any single function. The default is 200.
+
+     -P<num>
+          interval of progress display. For the  homo  ludens  in
+          the  programmer  or  people  with incredibly overloaded
+          machines.   After  every  <num>  lines  of   processing
+          C-Refine echoes the current line number to stdout.  The
+          default  is  0,  which  means  that  this  function  is
+          suppressed.
+
+     -T<num>
+          tab size. Select the number of spaces to  which  a  TAB
+          character expands.  C-Refine expands all TAB characters
+          at the beginning of a line,  i.e.  those  that  act  as
+          indentation. Other TABs are left untouched. The default
           is 1.
 
      -W<num>
           warnings. Select the maximum number  of  warnings  that
           may occur before C-Refine stops processing prematurely.
           The default is 30.
+
+     --   indicate 'end of options'. You may use a  dash  as  the
+          input  filename (to use C-Refine as a filter from stan-
+          dard input to standard output), but it  can  be  recog-
+          nized  only  after you have used a double dash to indi-
+          cate that it is not an option.
 
 USAGE
      There are three new syntactic elements  with  C-Refine:  the
@@ -230,10 +251,23 @@ USAGE
      breaks  basic  syntactic  rules  of  C  and (b) the C-Refine
      preprocessor relies on some simple formatting rules, so  its
      algorithms  can  be  kept  simple and the whole thing small,
-     portable, robust, reliable and fast.
+     portable, robust, reliable, and fast.
 
      Here are the (very informal) descriptions of the syntax  and
      semantics of the language elements introduced by C-Refine:
+
+
+
+Sun Release 4.1     Last change: 12 June 1992                   4
+
+
+
+
+
+
+CREFINE(1)               USER COMMANDS                 CREFINE(1)
+
+
 
      refinement names
           A refinement name is just a normal C  identifier,  with
@@ -245,8 +279,8 @@ USAGE
           bol, typically a semicolon, a colon or an operator.   A
           refinement name must, however, be on a single line.
 
-     refinement calls 
-          A refinement call  consists of the  refinement  symbol,
+     refinement calls
+          A refinement call consists of  the  refinement  symbol,
           immediately  followed by a refinement name. The refine-
           ment symbol must not be in colums 0 of the source line.
           Refinement   calls  are  principally  allowed  anywhere
@@ -255,20 +289,6 @@ USAGE
           (and usually will) appear later  than  the  call.   The
           semantics  of  a  refinement call is as follows: A pro-
           cedural refinement (i.e. one that contains at least one
-
-
-
-Sun Release 4.1    Last change: 22 August 1991                  4
-
-
-
-
-
-
-CREFINE(1)               USER COMMANDS                 CREFINE(1)
-
-
-
           semicolon in its body) is inserted instead of its call,
           surrounded by a pair of curly braces. This insertion is
           recursively  applied  to  nested refinements.  A valued
@@ -301,6 +321,20 @@ CREFINE(1)               USER COMMANDS                 CREFINE(1)
           detected by C-Refine.
 
      leave
+
+
+
+Sun Release 4.1     Last change: 12 June 1992                   5
+
+
+
+
+
+
+CREFINE(1)               USER COMMANDS                 CREFINE(1)
+
+
+
           The leave construct may be used from  within  any  pro-
           cedural  refinement  at  any place where a statement is
           legal. It consists of the keyword leave followed by the
@@ -321,20 +355,6 @@ CREFINE(1)               USER COMMANDS                 CREFINE(1)
           I will try to get it back to you by means of  the  fol-
           lowing  example. This is a (very simple-minded) version
           of the Sieve of Eratosthenes. It should not be  thought
-
-
-
-Sun Release 4.1    Last change: 22 August 1991                  5
-
-
-
-
-
-
-CREFINE(1)               USER COMMANDS                 CREFINE(1)
-
-
-
           that  I  believe  the  refinement technique to be espe-
           cially well suited to this problem, but  this  was  the
           smallest 'real' problem I could think of to demonstrate
@@ -367,6 +387,20 @@ CREFINE(1)               USER COMMANDS                 CREFINE(1)
             }
 
           `find next bigger prime:
+
+
+
+Sun Release 4.1     Last change: 12 June 1992                   6
+
+
+
+
+
+
+CREFINE(1)               USER COMMANDS                 CREFINE(1)
+
+
+
             int current_candidate = current_prime + 1;
             while (sieve[current_candidate] == NON_PRIME)
               if (current_candidate == MAX)
@@ -387,20 +421,6 @@ CREFINE(1)               USER COMMANDS                 CREFINE(1)
             2 * current_prime
 
           `make output:
-
-
-
-Sun Release 4.1    Last change: 22 August 1991                  6
-
-
-
-
-
-
-CREFINE(1)               USER COMMANDS                 CREFINE(1)
-
-
-
             int current;  /* different from 'current' above */
             printf ("The primes between 2 and %d are0, MAX);
             for (current = 2; current <= MAX; current++)
@@ -417,7 +437,7 @@ CREFINE(1)               USER COMMANDS                 CREFINE(1)
           clear,  look  at the following example: A function that
           tests, whether its parameters form a  pythagorean  tri-
           ple:
-          bool pythagorean (double x, double y, double z)
+          bool pythagorean (int x, int y, int z)
           {
             return (`all legs positive && `one is hypotenuse)
 
@@ -433,6 +453,20 @@ CREFINE(1)               USER COMMANDS                 CREFINE(1)
           `y is hypotenuse:
             y*y == x*x + z*z
 
+
+
+
+Sun Release 4.1     Last change: 12 June 1992                   7
+
+
+
+
+
+
+CREFINE(1)               USER COMMANDS                 CREFINE(1)
+
+
+
           `z is hypotenuse:
             z*z == x*x + y*y
 
@@ -444,41 +478,27 @@ CREFINE(1)               USER COMMANDS                 CREFINE(1)
           single parenthesesed expression.
 
 FILES
-     bin/crefine       the executable program
+     crefine           the executable program
      filename.cr       C-with-refinements input file.
      filename.c        C output file.
      filename.ccr      C++-with-refinements input file.
      filename.cc       C++ output file.
-     otherfileRRR      output file from input file otherfile
 
 EXAMPLES
      crefine firsttest.cr
-
-
-
-Sun Release 4.1    Last change: 22 August 1991                  7
-
-
-
-
-
-
-CREFINE(1)               USER COMMANDS                 CREFINE(1)
-
-
-
           process the input file firsttest.cr producing the  out-
           put file firsttest.c
 
-     crefine -p+ -q+ -w2 next.ccr outfile
-          process the C++ inputfile next.ccr producing the output
-          file  outfile.   The startup message is suppressed, C++
-          mode is selected and the warning level is reduced to 2.
+     crefine -p+ -q+ -o outfile -w 2 next.ccr
+          process the C++-Refine inputfile next.ccr producing the
+          output   file   outfile.    The   startup   message  is
+          suppressed, C++ mode is selected and the warning  level
+          is reduced to 2.
 
-     crefine -pqw2 next.ccr outfile
+     crefine -pqw2 -ooutfile next.ccr
           same as before.
 
-     crefine -p+a-l-qw2 next.ccr outfile
+     crefine -o outfile -p+a-l-qw2 next.ccr
           same as before.
 
      crefine -c -s- -n0 -T8 last.cr
@@ -498,31 +518,11 @@ DIAGNOSTICS
      chose a different language for the messages (see option -m),
      get yourself a dictionary or interpreter and try again.
 
-SEE ALSO
-     cc(1), cpp(1), make(1)
-
-BUGS
-     Since preprocessor directives are not handled  by  C-Refine,
-     strange  things can happen if you use #ifdef or #if. This is
-     especially the case, if you  use  these  directives  to  put
-     large comments into your source files: if there are any com-
-     ments or string literals (double quotes)  or  char  literals
-     (single quotes) beginning in that area that are not properly
-     closed within it, C-Refine will run to nirvana searching for
-     their  end and give you lots of wrong error and warning mes-
-     sages.  Watch out for apostrophes (e.g.  in  "don't")  espe-
-     cially!
-
-     C-Refine should be able to act according to #line  commands,
-     so  that  the above problems could be avoided by running the
-     preprocessor first.
-
-     Those people, who use such stupid macros as
-        #define BEGIN {
 
 
 
-Sun Release 4.1    Last change: 22 August 1991                  8
+
+Sun Release 4.1     Last change: 12 June 1992                   8
 
 
 
@@ -533,53 +533,101 @@ CREFINE(1)               USER COMMANDS                 CREFINE(1)
 
 
 
+SEE ALSO
+     cc(1), cpp(1), make(1)
+
+BUGS
+     Since preprocessor directives are not handled  by  C-Refine,
+     strange  things can happen if you use #ifdef or #if. This is
+     especially the case if you use these directives to put large
+     comments  into  your source files: if there are any comments
+     or string literals (double quotes) or char literals  (single
+     quotes)  beginning in that area that are not properly closed
+     within it, C-Refine will run to nirvana searching for  their
+     end  and  give you lots of wrong error and warning messages.
+     Watch out for apostrophes (e.g. in "don't") especially!
+
+     Those people, who use such stupid macros as
+        #define BEGIN {
         #define END   }
-     or similar craizy stuff, will have to change their habits in
-     order to use C-Refine.
+     or similar craizy stuff, will have to change their habits or
+     run the preprocessor first in order to use C-Refine.
+
+     When using a call to  a  value  returning  refinement  as  a
+     parameter  to  a macro, most preprocessors will complain the
+     #line directive when numbering level 3 is being used. -n2 or
+     -n1  can  be used to overcome this problem although this may
+     be a bit unsatisfactory.
 
      The output of C-Refine may be code that exceeds certain com-
      piler  limits  of  your C or C++ compiler. Since the body of
      every procedural refinement is enclosed in a block  and  the
      body  of  every  value  returning  refinement is enclosed in
-     parentheses, the block nexting limits or expression complex-
+     parentheses, the block nesting limits or expression complex-
      ity  limits  of  your  compiler may be reached when you make
      very heavy use of nested refinements.
 
      Some compilers may handle the  #line  directive  improperly,
-     yielding wrongly tagged error messages.
+     yielding wrongly tagged error messages. Bad luck.
 
      Probably C-Refine will also work with Objective-C, but I  am
-     not absolutely sure about that.
+     not  absolutely  sure about that. Perhaps somebody will give
+     me some feedback on this issue ?
 
      There should be a mode to use C-Refine for Lisp also.
 
+     And for several other languages, too.
+
      C-Refine reacts poor on some types of syntactic errors.
 
-     It should optionally be possible to let C-Refine run  the  C
-     preprocessor and react correctly to #line directives.
+     C-Refine will not work good if your filenames  contain  cer-
+     tain strange characters (e.g. double quotes).
 
      In C++, when a "leave" has to jump across  a  variable  ini-
-     tialization,  some Compilers will complain, that the goto is
+     tialization,  some compilers will complain, that the goto is
+
+
+
+Sun Release 4.1     Last change: 12 June 1992                   9
+
+
+
+
+
+
+CREFINE(1)               USER COMMANDS                 CREFINE(1)
+
+
+
      illegal. This is not true, because the  goto  jumps  to  (or
      even  beyond)  the very end of the block where that variable
      is in [precisely: the jump is to an empty  statement,  which
      is  the last statement in the block], but these compilers do
      not recognize that fact.
 
-VERSION
-     This is for C-Refine Version 2.4
+     You must have C-Refine in order to be able  to  use  refine-
+     ments.   This  is actually not a bug in C-Refine but in your
+     compiler.
 
-     It is likely that the command syntax be changed in the  next
-     version  in  the  following  way:  multiple filenames can be
-     given, all of  which  must  end  with  an  'r'.  The  output
-     filename is constructed implicitly by removing that 'r' from
-     the inputfilename. So you better  do  not  use  output  file
-     names in your makefiles.
+     Although much easier than without, programming is still dif-
+     ficult  even  with  C-Refine.  This is a bug in you. Contact
+     darwin@nirvana.edu or root@headquarter.heaven.gov  for  com-
+     plaints.
+
+     There is a front-end for C-Refine called 'ccr', which  works
+     just  like  'cc'  except  that it allows to compile C-Refine
+     sources also, but there is no manpage for that.
+
+VERSION
+     This manpage is for C-Refine Version 3.0  (internally  named
+     Version 17)
 
 AUTHOR
-     Lutz Prechelt, Institut fuer Programmstrukturen und Datenor-
-     ganisation,  Universitaet  Karlsruhe, D-7500 Karlsruhe, Ger-
-     many.  (prechelt@ira.uka.de)
+     Lutz Prechelt  (prechelt@ira.uka.de)
+     Institut fuer Programmstrukturen und Datenorganisation
+     Universitaet Karlsruhe
+     D-7500 Karlsruhe
+     Germany
 
 
 
@@ -588,7 +636,25 @@ AUTHOR
 
 
 
-Sun Release 4.1    Last change: 22 August 1991                  9
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Sun Release 4.1     Last change: 12 June 1992                  10
 
 
 

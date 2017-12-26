@@ -1,10 +1,7 @@
 /*************************************************************************
 Module  : getargs -- command line option processor
 Author  : Lutz Prechelt, Karlsruhe
-Date    : 11.06.91  Version 2
-Compiler: should be portable
-          tried: MS-DOS 3.2, Microsoft C 5.0 (ANSI-C)
-          SUN-OS 4.03, 4.1 (K&R C)
+Date    : 15.11.91  Version 3
 **************************************************************************/
 /*
     Copyright (C) 1988,91 by Lutz Prechelt, Karlsruhe
@@ -40,7 +37,7 @@ typedef struct {
 
 #define ARGTABSIZE(a) (sizeof (a) / sizeof (ARG))
 
-extern int  getargs A((int *argc, char **argv, ARG argtab[], int argtabsize));
+extern int  getargs A((int *argc, char ***argvp, ARG argtab[], int argtabsize));
 extern void print_usage A((char *progname, char *usage,
                            ARG tabp[], int argtabsize));
 
@@ -58,7 +55,7 @@ static ARG argtab[] = {
 
 /* Call : */
 
-  if (getargs (&argc, argv, argtab, ARGTABSIZE (argtab)) || argc != 3)
+  if (getargs (&argc, &argv, argtab, ARGTABSIZE (argtab)) || argc != 3)
      print_usage (argv[0], "[options] inputfile outputfile [options]",
                   argtab, ARGTABSIZE (argtab));
 
