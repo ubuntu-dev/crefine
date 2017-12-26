@@ -1,4 +1,4 @@
-
+#line 1 "cr_talk.cr"
 /*************************************************************************
 Project : C-Refine Precompiler
 Module  : Output functions for messages

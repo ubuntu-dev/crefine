@@ -9,14 +9,12 @@ NAME
      crefine - refinement preprocessor for C and C++
 
 SYNOPSIS
-     crefine [ options ] inputfile [
-outputfile ]
+     crefine [ options ] inputfile [ outputfile ]
 
 DESCRIPTION
      crefine (C-Refine) (spoken like 'see refine') is  a  prepro-
      cessor  that adds a new language construct to C and C++: the
-     refinement. crefine massages a source code
-file  to  produce
+     refinement. crefine massages a source code file  to  produce
      plain  C  output  from C input with refinements or plain C++
      from C++ with refinements.  The  syntax  of  refinements  is
      described  in  the USAGE section.  Only a single source file
@@ -238,8 +236,7 @@ USAGE
      semantics of the language elements introduced by C-Refine:
 
      refinement names
-          A refinement name is just a
-normal C  identifier,  with
+          A refinement name is just a normal C  identifier,  with
           one  important  addition: blanks are allowed within (!)
           it (i.e. anywhere after the first nonblank character of
           the  name  and  before the last nonblank one); they are
@@ -248,9 +245,8 @@ normal C  identifier,  with
           bol, typically a semicolon, a colon or an operator.   A
           refinement name must, however, be on a single line.
 
-     refinement calls
-          A refinement call consists of
-the  refinement  symbol,
+     refinement calls 
+          A refinement call  consists of the  refinement  symbol,
           immediately  followed by a refinement name. The refine-
           ment symbol must not be in colums 0 of the source line.
           Refinement   calls  are  principally  allowed  anywhere
@@ -258,8 +254,7 @@ the  refinement  symbol,
           defined  in  that function, although the definition may
           (and usually will) appear later  than  the  call.   The
           semantics  of  a  refinement call is as follows: A pro-
-          cedural refinement (i.e.
-one that contains at least one
+          cedural refinement (i.e. one that contains at least one
 
 
 
@@ -277,8 +272,7 @@ CREFINE(1)               USER COMMANDS                 CREFINE(1)
           semicolon in its body) is inserted instead of its call,
           surrounded by a pair of curly braces. This insertion is
           recursively  applied  to  nested refinements.  A valued
-          refinement (i.e. one that contains just
-an  expression
+          refinement (i.e. one that contains just  an  expression
           and  no  semicolon  in its body) is inserted instead of
           its call, surrounded by a pair  of  parentheses.   This
           insertion  is  recursively  applied  to  nested  valued
@@ -298,20 +292,16 @@ an  expression
           ment is examined to decide what type of  refinement  it
           is: All refinements that contain one or more semicolons
           in their body, that are not part of a comment,  charac-
-          ter  denoter  or  string denoter, are called
-procedural
-          refinements, since they contain
-statements.  All  other
-          refinements  are  called valued
-refinements, since they
+          ter  denoter  or  string denoter, are called procedural
+          refinements, since they contain statements.  All  other
+          refinements  are  called valued refinements, since they
           only contain an expression and  thus  return  a  value.
           Illegal  syntax  of  a  refinement  declaration and the
           declaration of refinements that are never used will  be
           detected by C-Refine.
 
      leave
-          The leave construct may be used
-from  within  any  pro-
+          The leave construct may be used from  within  any  pro-
           cedural  refinement  at  any place where a statement is
           legal. It consists of the keyword leave followed by the
           refinement  symbol,  followed by a refinement name ref.

@@ -32,7 +32,7 @@ HS=     getargs.h crefine.h cr_talk.h cr_getln.h std.h cr_texts.h
 CR=crefine
 CRFLAGS= -ac -s- -T8
 CC=cc
-CFLAGS=  -I"." -DNDEBUG=1 -Ddebug=0 -Dunix=1 -Dms_dos=0 -Dansi=0 -Ddeutsch=0
+CFLAGS=  -I"." -DNDEBUG=1 -Ddebug=0 -Dunix=1 -Dms_dos=0 -Dansi=1 -Ddeutsch=0
 LDFLAGS= 
 
 %.c: %.cr
@@ -56,7 +56,7 @@ cr_talk.o: cr_decl.h  cr_texts.h  std.h
 cr_getln.o: cr_decl.h std.h
 
 clean:
-	-rm core  a.out  *~  crefine.c  cr_getln.c  cr_talk.c  *.o
+	-rm -f core  a.out  *~  crefine.c  cr_getln.c  cr_talk.c  *.o
 
 
 

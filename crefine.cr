@@ -133,7 +133,7 @@ Version 2.4             (14, 15, 16)
 
 #include <stdio.h>
 #include <string.h>
-#include <malloc.h>
+#include <stdlib.h>
 #include <time.h>
 
 #define DATA_HERE     /* Here the data declarations are NOT extern */
